@@ -2,6 +2,10 @@
 #include <math.h>
 #include "glfem.h"
 
+double compute_jacobian_determinant(double x[3], double y[3]) {
+    double J = (x[1] - x[0]) * (y[2] - y[0]) - (x[2] - x[0]) * (y[1] - y[0]);
+    return J;
+};
 
 double integrate(double x[3], double y[3], double (*f) (double, double))
 {
@@ -23,11 +27,12 @@ double integrate(double x[3], double y[3], double (*f) (double, double))
     // Compute the integral
     for (int i = 0; i < 3; i++)
     {
-        I += f(xLoc[i], yLoc[i]) / 6.0;
+        I += f(xLoc[i], yLoc[i]) / 6.0 * compute_jacobian_determinant(x, y);
     }
-glfemSetColor(GLFEM_RED);   glfemDrawNodes(xLoc,yLoc,3);
-  glfemSetColor(GLFEM_BLACK); glfemDrawElement(x,y,3);
-  glfemSetColor(GLFEM_BLUE);  glfemDrawNodes(x,y,3);
+
+    glfemSetColor(GLFEM_RED);   glfemDrawNodes(xLoc,yLoc,3);
+    glfemSetColor(GLFEM_BLACK); glfemDrawElement(x,y,3);
+    glfemSetColor(GLFEM_BLUE);  glfemDrawNodes(x,y,3);
   
     
 
@@ -68,8 +73,10 @@ double integrateRecursive(double x[3], double y[3], double (*f)(double,double), 
         double x3[3] = {mid_points[2][0], mid_points[1][0], mid_points[0][0]}; //center triangle
         double y3[3] = {mid_points[2][1], mid_points[1][1], mid_points[0][1]};
 
-        I = (integrateRecursive(x0, y0, f, n - 1) + integrateRecursive(x1, y1, f, n - 1) + integrateRecursive(x2, y2, f, n - 1) + integrateRecursive(x3, y3, f, n - 1));
-        I = I / 4.0;
+        I = integrateRecursive(x0, y0, f, n - 1)
+        + integrateRecursive(x1, y1, f, n - 1) 
+        + integrateRecursive(x2, y2, f, n - 1)
+        + integrateRecursive(x3, y3, f, n - 1);
     }  
      
     return I;

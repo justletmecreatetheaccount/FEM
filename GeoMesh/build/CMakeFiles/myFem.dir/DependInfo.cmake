@@ -8,19 +8,15 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/home/vlad/programing/C/FEM/GeoMesh/src/fem.c" "CMakeFiles/myFem.dir/src/fem.c.o" "gcc" "CMakeFiles/myFem.dir/src/fem.c.o.d"
-  "/home/vlad/programing/C/FEM/GeoMesh/src/glfem.c" "CMakeFiles/myFem.dir/src/glfem.c.o" "gcc" "CMakeFiles/myFem.dir/src/glfem.c.o.d"
-  "/home/vlad/programing/C/FEM/GeoMesh/src/homework.c" "CMakeFiles/myFem.dir/src/homework.c.o" "gcc" "CMakeFiles/myFem.dir/src/homework.c.o.d"
-  "/home/vlad/programing/C/FEM/GeoMesh/src/main.c" "CMakeFiles/myFem.dir/src/main.c.o" "gcc" "CMakeFiles/myFem.dir/src/main.c.o.d"
-  "" "myFem" "gcc" "CMakeFiles/myFem.dir/link.d"
+  "/home/kiwi/fem/FEM/GeoMesh/src/fem.c" "CMakeFiles/myFem.dir/src/fem.c.o" "gcc" "CMakeFiles/myFem.dir/src/fem.c.o.d"
+  "/home/kiwi/fem/FEM/GeoMesh/src/glfem.c" "CMakeFiles/myFem.dir/src/glfem.c.o" "gcc" "CMakeFiles/myFem.dir/src/glfem.c.o.d"
+  "/home/kiwi/fem/FEM/GeoMesh/src/homework.c" "CMakeFiles/myFem.dir/src/homework.c.o" "gcc" "CMakeFiles/myFem.dir/src/homework.c.o.d"
+  "/home/kiwi/fem/FEM/GeoMesh/src/main.c" "CMakeFiles/myFem.dir/src/main.c.o" "gcc" "CMakeFiles/myFem.dir/src/main.c.o.d"
   )
 
-# Targets to which this target links which contain Fortran sources.
-set(CMAKE_Fortran_TARGET_LINKED_INFO_FILES
-  )
-
-# Targets to which this target links which contain Fortran sources.
-set(CMAKE_Fortran_TARGET_FORWARD_LINKED_INFO_FILES
+# Targets to which this target links.
+set(CMAKE_TARGET_LINKED_INFO_FILES
+  "/home/kiwi/fem/FEM/GeoMesh/build/glfw/src/CMakeFiles/glfw.dir/DependInfo.cmake"
   )
 
 # Fortran module output directory.

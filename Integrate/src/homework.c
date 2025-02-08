@@ -27,7 +27,7 @@ double integrate(double x[3], double y[3], double (*f) (double, double))
     // Compute the integral
     for (int i = 0; i < 3; i++)
     {
-        I += f(xLoc[i], yLoc[i]) / 6.0 * compute_jacobian_determinant(x, y);
+        I += f(xLoc[i], yLoc[i]) / 6.0;
     }
 
     glfemSetColor(GLFEM_RED);   glfemDrawNodes(xLoc,yLoc,3);
@@ -46,7 +46,7 @@ double integrateRecursive(double x[3], double y[3], double (*f)(double,double), 
 
     if (n == 0)
     {
-        I = integrate(x, y, f);
+        I = integrate(x, y, f) * compute_jacobian_determinant(x, y);
     }
     else
     {

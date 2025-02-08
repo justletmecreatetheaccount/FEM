@@ -57,9 +57,9 @@ void geoMeshGenerate() {
     double r1 = theGeometry->rHole;
  
 //
-//  -1- Construction de la géométrie avec OpenCascade
-//      On crée le rectangle
-//      On crée les deux cercles
+//  -1- Construction de la gÃ©omÃ©trie avec OpenCascade
+//      On crÃ©e le rectangle
+//      On crÃ©e les deux cercles
 //      On soustrait les cercles du rectangle :-)
 //
  
@@ -80,9 +80,9 @@ void geoMeshGenerate() {
     ErrorGmsh(ierr);
  
 //
-//  -2- Définition de la fonction callback pour la taille de référence
+//  -2- DÃ©finition de la fonction callback pour la taille de rÃ©fÃ©rence
 //      Synchronisation de OpenCascade avec gmsh
-//      Génération du maillage (avec l'option Mesh.SaveAll :-)
+//      GÃ©nÃ©ration du maillage (avec l'option Mesh.SaveAll :-)
                   
    
     geoSetSizeCallback(geoSize);

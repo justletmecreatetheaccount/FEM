@@ -1,1 +1,0 @@
-/usr/bin/cc -Wl,--dependency-file=CMakeFiles/myFem.dir/link.d CMakeFiles/myFem.dir/src/fem.c.o CMakeFiles/myFem.dir/src/glfem.c.o CMakeFiles/myFem.dir/src/homework.c.o CMakeFiles/myFem.dir/src/main.c.o -o myFem  glfw/src/libglfw3.a /usr/lib/libGL.so /usr/lib/librt.a -lm -ldl /usr/lib/libX11.so

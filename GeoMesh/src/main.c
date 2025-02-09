@@ -61,7 +61,7 @@ int main(void)
 //  -2- Creation du fichier du maillage
 //
     
-    char filename[] = "../data/mesh.txt";
+    char filename[] = "data/mesh.txt";
     geoMeshWrite(filename);
 
 //

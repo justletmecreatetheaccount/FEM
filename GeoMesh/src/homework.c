@@ -12,8 +12,7 @@
 */
 
 
-double geoSize(double x, double y){
-
+double geoSize(double x, double y) {
     femGeo* theGeometry = geoGetGeometry();
     
     double h = theGeometry->h;
@@ -22,17 +21,32 @@ double geoSize(double x, double y){
     double r0 = theGeometry->rNotch;
     double h0 = theGeometry->hNotch;
     double d0 = theGeometry->dNotch;
-  
     
     double x1 = theGeometry->xHole;
     double y1 = theGeometry->yHole;
     double r1 = theGeometry->rHole;
     double h1 = theGeometry->hHole;
     double d1 = theGeometry->dHole;
-
-
-
-    return h;
+    
+    double result = h;
+    
+    // Getting the profile unidimensionally with d
+    double _d0 = sqrt(pow(x - x0, 2) + pow(y - y0, 2)) - r0; // Distance to the notch border
+    double _d1 = sqrt(pow(x - x1, 2) + pow(y - y1, 2)) - r1; // Distance to the hole border
+    if (_d0 < d0) { // If the points are in the radius of r0 + d0 which is the transition zone
+        // Do Hermite Interpolation
+        double a2 = (3 * (h - h0)) / pow(d0, 2);
+        double a3 = (2 * (h0 - h)) / pow(d0, 3);
+        result = h0 + a2 * pow(_d0, 2) + a3 * pow(_d0, 3);
+    }
+    if (_d1 < d1) { // Do not use elif in the case of the two transition zones overlapping
+        // Second Hermite Interpolation
+        double a2 = (3 * (h - h1)) / pow(d1, 2);
+        double a3 = (2 * (h1 - h)) / pow(d1, 3);
+        result = h1 + a2 * pow(_d1, 2) + a3 * pow(_d1, 3); // Min for overlapping transition zones
+    }
+        
+    return result;
 }
 
 

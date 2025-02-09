@@ -62,20 +62,20 @@ void geoMeshGenerate() {
 //
  
     int ierr;
-    int idPlate = gmshModelOccAddRectangle(-w/2, -h/2, 0, w, h, -1, -1, &ierr); // tag = 0 ?
+    int idPlate = gmshModelOccAddRectangle(-w/2.0, -h/2.0, 0.0, w, h, -1, 0.0, &ierr); // tag = 0 ?
     ErrorGmsh(ierr);
-    int idNotch = gmshModelOccAddDisk(x0, y0, 0, r0, r0, -1, NULL, 0, NULL, 0, &ierr); 
+    int idNotch = gmshModelOccAddDisk(x0, y0, 0.0, r0, r0, -1, NULL, 0, NULL, 0, &ierr); 
     ErrorGmsh(ierr);
-    int idHole  = gmshModelOccAddDisk(x1, y1, 0, r1, r1, -1, NULL, 0, NULL, 0, &ierr);    
+    int idHole  = gmshModelOccAddDisk(x1, y1, 0.0, r1, r1, -1, NULL, 0, NULL, 0, &ierr);    
     ErrorGmsh(ierr);
     
     int plate[] = {2, idPlate};
     int notch[] = {2, idNotch};
     int hole[]  = {2, idHole};
     
-    gmshModelOccCut(plate, 1, notch, 1, NULL, NULL, NULL, NULL, NULL, -1, 1, 1, &ierr); 
+    gmshModelOccCut(plate, 2, notch, 2, NULL, NULL, NULL, NULL, NULL, -1, 1, 1, &ierr); 
     ErrorGmsh(ierr);
-    gmshModelOccCut(plate, 1, hole, 1, NULL, NULL, NULL, NULL, NULL, -1, 1, 1, &ierr); 
+    gmshModelOccCut(plate, 2, hole, 2, NULL, NULL, NULL, NULL, NULL, -1, 1, 1, &ierr); 
     ErrorGmsh(ierr);
  
 //

@@ -33,13 +33,13 @@ double geoSize(double x, double y) {
     // Getting the profile unidimensionally with d
     double _d0 = sqrt(pow(x - x0, 2) + pow(y - y0, 2)) - r0; // Distance to the notch border
     double _d1 = sqrt(pow(x - x1, 2) + pow(y - y1, 2)) - r1; // Distance to the hole border
-    if (_d0 < d0) { // If the points are in the radius of r0 + d0 which is the transition zone
+    if (_d0 <= d0) { // If the points are in the radius of r0 + d0 which is the transition zone
         // Do Hermite Interpolation
         double a2 = (3 * (h - h0)) / pow(d0, 2);
         double a3 = (2 * (h0 - h)) / pow(d0, 3);
         result = h0 + a2 * pow(_d0, 2) + a3 * pow(_d0, 3);
     }
-    if (_d1 < d1) { // Do not use elif in the case of the two transition zones overlapping
+    if (_d1 <= d1) { // Do not use elif in the case of the two transition zones overlapping
         // Second Hermite Interpolation
         double a2 = (3 * (h - h1)) / pow(d1, 2);
         double a3 = (2 * (h1 - h)) / pow(d1, 3);
@@ -76,7 +76,7 @@ void geoMeshGenerate() {
 //
  
     int ierr;
-    int idPlate = gmshModelOccAddRectangle(-w/2.0, -h/2.0, 0.0, w, h, -1, 0.0, &ierr); // tag = 0 ?
+    int idPlate = gmshModelOccAddRectangle(-w/2.0, -h/2.0, 0.0, w, h, -1, 0.0, &ierr);
     ErrorGmsh(ierr);
     int idNotch = gmshModelOccAddDisk(x0, y0, 0.0, r0, r0, -1, NULL, 0, NULL, 0, &ierr); 
     ErrorGmsh(ierr);

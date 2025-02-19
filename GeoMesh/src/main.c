@@ -9,6 +9,8 @@
  */
  
 #include "glfem.h"
+#include <stdio.h>
+
 
 
 int main(void)
@@ -16,8 +18,6 @@ int main(void)
     printf("\n\n    V : Mesh and size mesh field \n");
     printf("    D : Domains \n");
     printf("    N : Next domain highlighted\n");
-
-
 
  
     double Lx = 1.0;
@@ -144,9 +144,10 @@ int main(void)
 
     free(meshSizeField);  
     geoFinalize();
-    glfwTerminate(); 
+    glfwTerminate();
+
+    exit(EXIT_SUCCESS);    
     
-    exit(EXIT_SUCCESS);
     return 0;  
 }
 

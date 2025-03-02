@@ -8,12 +8,12 @@
  */
 
 #include "glfem.h"
+#include <stdio.h>
 
 
 
 int main(void)
 {   
-    
  
     femPoissonProblem* theProblem = femPoissonCreate("../data/mesh2520.txt");
     femPoissonFindBoundaryNodes(theProblem);

@@ -77,8 +77,13 @@ void femPoissonFree(femPoissonProblem *theProblem)
 void femPoissonLocal(femPoissonProblem *theProblem, const int iElem, int *map, double *x, double *y)
 {
     femMesh *theMesh = theProblem->geo->theElements;
-    
-    //  A completer :-)
+    femNodes *theNodes = theMesh->nodes;
+
+    for (int i = 0; i < theMesh->nLocalNode; i++) {
+        map[i] = theMesh->elem[iElem*theMesh->nLocalNode + i];
+        x[i] = theNodes->X[map[i]];
+        y[i] = theNodes->Y[map[i]];
+    }
 
 }
 

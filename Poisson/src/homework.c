@@ -27,7 +27,7 @@ void femPoissonFindBoundaryNodes(femPoissonProblem *theProblem)
 {
     femGeo* theGeometry = theProblem->geo;  
     femMesh* theEdges = theGeometry->theEdges;
-    printf("Number of edges %d \n", theEdges->nElem*theEdges->nLocalNode); 
+    printf("Number of edges %d \n", theEdges->nElem); 
     
 
     femDomain *theBoundary = malloc(sizeof(femDomain));
@@ -114,8 +114,11 @@ void femPoissonSolve(femPoissonProblem *theProblem)
     printf("Number of integration points %d \n", theRule->n);
 
     for (iElem = 0; iElem < theMesh->nElem; iElem++) {
+        
         femPoissonLocal(theProblem,iElem,map,x,y);
-        for (i = 0; i < theRule->n; i++) {
+
+        for (i = 0; i < theRule->n; i++) { // Loop over the integration points
+
             femDiscretePhi2(theSpace,theRule->xsi[i],theRule->eta[i],phi);
             femDiscreteDphi2(theSpace,theRule->xsi[i],theRule->eta[i],dphidxsi,dphideta);
 
@@ -134,17 +137,16 @@ void femPoissonSolve(femPoissonProblem *theProblem)
                 dphidy[j] = (dphideta[j] * dxdxsi - dphidxsi[j] * dxdeta) / detJ;
             }
 
-            for (i = 0; i < nLocal; i++) {
-                double Bi = 0;
-                for (iInteg = 0; iInteg < theRule->n; iInteg++) {
-                    Bi += phi[i]*detJ*theRule->weight[iInteg];}
-                theSystem->B[map[i]] += Bi;
-                for (j = 0; j < nLocal; j++) {
-                    double Aij = 0;
-                    for (iInteg = 0; iInteg < theRule->n; iInteg++) {
-                        Aij += (dphidx[i]*dphidx[j] + dphidy[i]*dphidy[j])*detJ*theRule->weight[iInteg];}
-                    theSystem->A[map[i]][map[j]] += Aij; }
-                }
+            double Bis = 0;
+            for (int j = 0; j < theRule->n; j++) {
+                theSystem->B[map[j]] += phi[j]*detJ*theRule->weight[i];
+            }
+
+            for (j = 0; j < nLocal; j++) {
+                for (int k = 0; k < theRule->n; k++) {
+                    theSystem->A[map[j]][map[k]] += (dphidx[j]*dphidx[k] + dphidy[j]*dphidy[k])*detJ*theRule->weight[i];
+                 }
+            }
         }
     }
     for (i = 0; i < theBoundary->nElem; i++) {

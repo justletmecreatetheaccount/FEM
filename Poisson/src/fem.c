@@ -20,7 +20,15 @@ static const double _gaussTri3Weight[3]  = { 0.166666666666667, 0.16666666666666
 
 
 
+/*
 
+
+In : 
+- filename of the mesh file (stores data)
+
+Out : 
+- theGeometry structure containing the mesh
+*/
 femGeo* geoMeshCreate(const char *filename) 
 {
    FILE* file = fopen(filename,"r");

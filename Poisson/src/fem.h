@@ -25,12 +25,20 @@
 
 typedef enum {FEM_TRIANGLE,FEM_QUAD} femElementType;
 
+// A structure representing an array of nodes
+// X and Y are the coordinates of the nodes
+// The number of nodes is stored in nNodes
 typedef struct {
     int nNodes;
     double *X;
     double *Y;
 } femNodes;
 
+// A structure containing the mesh
+// nLocalNode is the number of nodes per element
+// nElem is the number of elements
+// elem
+// nodes is a pointer to a femNodes a structure representing an array of nodes
 typedef struct {
     int nLocalNode;
     int nElem;
@@ -38,6 +46,7 @@ typedef struct {
     femNodes *nodes;
 } femMesh;
 
+// Boh jsp
 typedef struct {
     femMesh *mesh;
     int nElem;
@@ -45,6 +54,7 @@ typedef struct {
     char name[MAXNAME];
 } femDomain;
 
+// A structure representing the geometry of the problem
 typedef struct {
     femElementType elementType;
     femNodes *theNodes;
@@ -55,13 +65,17 @@ typedef struct {
 } femGeo;
 
 
+// A structure containting functions to compute 
 typedef struct {
     int n;
     void (*x2)(double *xsi, double *eta);
     void (*phi2)(double xsi, double eta, double *phi);
     void (*dphi2dx)(double xsi, double eta, double *dphidxsi, double *dphideta);
 } femDiscrete;
-    
+
+// A structure containing the integration rule
+// n is the number of integration points
+// xsi, eta and weight are the coordinates and the weights of the integration points
 typedef struct {
     int n;
     const double *xsi;
@@ -69,13 +83,14 @@ typedef struct {
     const double *weight;
 } femIntegration;
 
+// A structure containing the matrix A and the vector B of the linear system
 typedef struct {
     double *B;
     double **A;
     int size;
 } femFullSystem;
 
-
+// A structure containing the geometry, the discrete space, the integration rule and the linear system
 typedef struct {
     femGeo *geo;
     femDiscrete *space;

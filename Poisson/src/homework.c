@@ -28,7 +28,7 @@ void femPoissonFindBoundaryNodes(femPoissonProblem *theProblem)
     int nBoundary = 0;
     
     //  A completer :-)
-
+    
 
     femDomain *theBoundary = malloc(sizeof(femDomain));
     theGeometry->nDomains++;
@@ -39,8 +39,11 @@ void femPoissonFindBoundaryNodes(femPoissonProblem *theProblem)
     theBoundary->mesh = NULL;
     sprintf(theBoundary->name,"Boundary");
  
-    // A completer :-)
-
+    for (int i = 0; i < theEdges->nElem; i++){
+        theBoundary->elem[i] = theEdges->elem[2*i];
+        nBoundary++;
+    }
+    theBoundary->nElem = nBoundary;
 }
     
 # endif
@@ -49,7 +52,11 @@ void femPoissonFindBoundaryNodes(femPoissonProblem *theProblem)
 void femPoissonFree(femPoissonProblem *theProblem)
 {
 
-    // A completer :-)
+    geoMeshFree(theProblem->geo);
+    femDiscreteFree(theProblem->space);
+    femIntegrationFree(theProblem->rule);
+    femFullSystemFree(theProblem->system);
+    free(theProblem);
 }
     
 # endif
@@ -58,8 +65,12 @@ void femPoissonFree(femPoissonProblem *theProblem)
 void femPoissonLocal(femPoissonProblem *theProblem, const int iElem, int *map, double *x, double *y)
 {
     femMesh *theMesh = theProblem->geo->theElements;
-    
-    //  A completer :-)
+    femNodes *Nodes = theMesh->nodes;
+    for (int i = 0; i < theMesh->nLocalNode; i++){
+        map[i] = theMesh->elem[iElem * theMesh->nLocalNode + i];
+        x[i] = Nodes->X[map[i]];
+        y[i] = Nodes->Y[map[i]];
+    }
 
 }
 

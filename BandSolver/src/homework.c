@@ -67,9 +67,9 @@ int femMeshComputeBand(femMesh *theMesh)
     for (int e = 0; e < nElem; e++) {
         // Loop over all nodes in the element
         for (int i = 0; i < nLocalNode; i++) {
-            int node_i = elem[e * nLocalNode + i]; // Global index of node i
+            int node_i = theMesh->nodes->number[elem[e * nLocalNode + i]]; // Global index of node i
             for (int j = 0; j < nLocalNode; j++) {
-                int node_j = elem[e * nLocalNode + j]; // Global index of node j
+                int node_j = theMesh->nodes->number[elem[e * nLocalNode + j]]; // Global index of node j
                 int diff = abs(node_i - node_j); // Difference in global indices
                 if (diff > bandwidth) {
                     bandwidth = diff; // Update bandwidth if this difference is larger
@@ -97,8 +97,8 @@ void femBandSystemAssemble(femBandSystem* myBandSystem, double *Aloc, double *Bl
             if (row <= col) {
                 myBandSystem->A[row][col] += Aloc[i * nLoc + j];
             }
-            myBandSystem->B[row] += Bloc[i];
         }
+        myBandSystem->B[row] += Bloc[i];
     }
 }
 

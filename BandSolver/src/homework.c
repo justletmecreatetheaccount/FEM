@@ -8,9 +8,9 @@
 double* assignableArrayPos;
 
 int compareNodePos(const void* firstNode, const void* secondNode) {
-    int* iOne = (int *) firstNode;
-    int* iTwo = (int *) secondNode;
-    double diff = assignableArrayPos[*iOne] - assignableArrayPos[*iTwo];
+    int* i1 = (int *) firstNode;
+    int* i2 = (int *) secondNode;
+    double diff = assignableArrayPos[*i1] - assignableArrayPos[*i2];
     return (diff < 0) - (diff > 0);
 }
 

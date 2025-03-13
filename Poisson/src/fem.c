@@ -111,7 +111,7 @@ void geoMeshPrint(femGeo* theGeometry)
 {
    femNodes *theNodes = theGeometry->theNodes;
    if (theNodes != NULL) {
-      printf("Number of nodes %d \n", theNodes->nNodes);
+      printf("Number of nodes %i \n", theNodes->nNodes);
       for (int i = 0; i < theNodes->nNodes; i++) {
         printf("%6d : %14.7e %14.7e \n",i,theNodes->X[i],theNodes->Y[i]); }}
    femMesh *theEdges = theGeometry->theEdges;

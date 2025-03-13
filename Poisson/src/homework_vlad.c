@@ -61,9 +61,6 @@ void femPoissonFindBoundaryNodes(femPoissonProblem *theProblem)
     
     theBoundary->mesh = NULL;
     sprintf(theBoundary->name,"Boundary");
-    for (int i = 0; i < nBoundary; i++){
-        printf("boundary elem : %i",theBoundary->elem[i])
-    }
 }
     
 # endif

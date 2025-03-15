@@ -4,8 +4,8 @@ project(myFemProject)
 set(EXEC_NAME myFem)
 
 # Set GMSH Version : example gmsh-4.12.2 -> GMSH_VERSION=gmsh-4.12, GMSH_MINOR=2
-set(GMSH_VERSION gmsh-4.12)
-set(GMSH_MINOR 2)
+set(GMSH_VERSION gmsh-4.13)
+set(GMSH_MINOR 1)
 
 # OpenGL
 find_package(OpenGL REQUIRED)

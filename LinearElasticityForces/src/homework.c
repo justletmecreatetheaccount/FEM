@@ -81,10 +81,35 @@ void femElasticityAssembleNeumann(femProblem *theProblem){
         femBoundaryCondition *theCondition = theProblem->conditions[iBnd];
         femBoundaryType type = theCondition->type;
         double value = theCondition->value;
-
-        //
-        // A completer :-)   
-        //
+        
+        if (type == NEUMANN_X) {
+            for (iElem = 0; iElem < theEdges->nElem; iElem++) {
+                for (j=0; j < nLocal; j++) {
+                    map[j] = theEdges->elem[iElem*nLocal+j];
+                    mapU[j] = 2*map[j];
+                    x[j] = theNodes->X[map[j]];
+                    y[j] = theNodes->Y[map[j]];}
+                for (iInteg=0; iInteg < theRule->n; iInteg++) {    
+                    double xsi    = theRule->xsi[iInteg];
+                    double weight = theRule->weight[iInteg];  
+                    femDiscretePhi(theSpace,xsi,phi);
+                    double jac = fabs(x[1] - x[0]) / 2.0;
+                    for (i = 0; i < theSpace->n; i++) {
+                        B[mapU[i]] += phi[i] * value * jac * weight; }}}
+        } else if (type == NEUMANN_Y) {
+            for (iElem = 0; iElem < theEdges->nElem; iElem++) {
+                for (j=0; j < nLocal; j++) {
+                    map[j] = theEdges->elem[iElem*nLocal+j];
+                    mapU[j] = 2*map[j] + 1;
+                    x[j] = theNodes->X[map[j]];
+                    y[j] = theNodes->Y[map[j]];}
+                for (iInteg=0; iInteg < theRule->n; iInteg++) {    
+                    double xsi    = theRule->xsi[iInteg];
+                    double weight = theRule->weight[iInteg];  
+                    femDiscretePhi(theSpace,xsi,phi);
+                    double jac = fabs(y[1] - y[0]) / 2.0;
+                    for (i = 0; i < theSpace->n; i++) {
+                        B[mapU[i]] += phi[i] * value * jac * weight; }}}}
 
     }
 }
@@ -92,19 +117,32 @@ void femElasticityAssembleNeumann(femProblem *theProblem){
 
 
 double *femElasticitySolve(femProblem *theProblem){
- 
-    //       
-    // A completer :-) 
-    //  
+    femFullSystem *theSystem = theProblem->system;
 
-     return theProblem->soluce;
+    femElasticityAssembleElements(theProblem);
+    femElasticityAssembleNeumann(theProblem);
+
+    int* theConstrainedNodes = theProblem->constrainedNodes;
+    for (int i = 0; i < theSystem->size; i++) {
+        if (theConstrainedNodes[i] != -1) {
+            double value = theProblem->conditions[theConstrainedNodes[i]]->value;
+            femFullSystemConstrain(theSystem, i, value);
+        }
+    }
+
+    return femFullSystemEliminate(theSystem);
 }
 
 double * femElasticityForces(femProblem *theProblem){        
-           
-    //       
-    // A completer :-) 
-    //  
-
-    return theProblem->residuals;
+    femFullSystem *theSystem = theProblem->system;
+    double *soluce = theProblem->soluce;
+    double *residuals = theProblem->residuals;
+    int size = theSystem->size;
+    double **A = theSystem->A;
+    double *B = theSystem->B;
+    int i,j;
+    for (i = 0; i < size; i++) {
+        residuals[i] = B[i];
+        for (j = 0; j < size; j++) residuals[i] -= A[i][j] * soluce[j]; }
+    return residuals;
 }

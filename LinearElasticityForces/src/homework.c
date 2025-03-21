@@ -68,7 +68,6 @@ void femElasticityAssembleElements(femProblem *theProblem){
                 B[mapY[i]] -= phi[i] * g * rho * jac * weight; }}} 
 }
 
-
 void femElasticityAssembleNeumann(femProblem *theProblem){
     femFullSystem  *theSystem = theProblem->system;
     femIntegration *theRule = theProblem->ruleEdge;
@@ -81,49 +80,70 @@ void femElasticityAssembleNeumann(femProblem *theProblem){
     int nLocal = 2;
     double *B  = theSystem->B;
 
+
     for(iBnd=0; iBnd < theProblem->nBoundaryConditions; iBnd++){
         femBoundaryCondition *theCondition = theProblem->conditions[iBnd];
+        femDomain *theDomain = theCondition->domain;
         femBoundaryType type = theCondition->type;
         double value = theCondition->value;
-        
+
         if (type == NEUMANN_X) {
-            for (iElem = 0; iElem < theEdges->nElem; iElem++) {
+            for (iElem = 0; iElem < theDomain->nElem; iElem++) {
                 for (j=0; j < nLocal; j++) {
-                    map[j] = theEdges->elem[iElem*nLocal+j];
+                    map[j] = theDomain->elem[iElem*nLocal+j];
                     mapU[j] = 2*map[j];
                     x[j] = theNodes->X[map[j]];
                     y[j] = theNodes->Y[map[j]];}
                 for (iInteg=0; iInteg < theRule->n; iInteg++) {    
-                    double xsi    = theRule->xsi[iInteg];
+                    double xsi = theRule->xsi[iInteg];
                     double weight = theRule->weight[iInteg];  
                     femDiscretePhi(theSpace,xsi,phi);
                     femDiscreteDphi(theSpace, xsi, dphidxsi);
+
+                    // Compute dx/dξ and dy/dξ
                     double dxdxsi = 0.0;
+                    double dydxsi = 0.0;
                     for (int k = 0; k < nLocal; k++) {
-                        dxdxsi += x[k] * dphidxsi[k];  // Compute dx/dξ
+                        dxdxsi += x[k] * dphidxsi[k];  // dx/dξ
+                        dydxsi += y[k] * dphidxsi[k];  // dy/dξ
                     }
-                    double jac = fabs(dxdxsi);  // Correct Jacobian
+
+                    // Compute Jacobian determinant
+                    double jac = sqrt(dxdxsi * dxdxsi + dydxsi * dydxsi);
+
                     for (i = 0; i < theSpace->n; i++) {
-                        B[mapU[i]] = phi[i] * value * jac * weight; }}}
+                        B[mapU[i]] += phi[i] * value * weight * jac; }}}
 
         } else if (type == NEUMANN_Y) {
-            for (iElem = 0; iElem < theEdges->nElem; iElem++) {
+            for (iElem = 0; iElem < theDomain->nElem; iElem++) {
+                printf("iElem = %d\n", iElem);
                 for (j=0; j < nLocal; j++) {
-                    map[j] = theEdges->elem[iElem*nLocal+j];
+                    map[j] = theDomain->elem[iElem*nLocal+j];
+                    printf("map[j] = %d\n", map[j]);
                     mapU[j] = 2*map[j] + 1;
                     x[j] = theNodes->X[map[j]];
                     y[j] = theNodes->Y[map[j]];}
-                for (iInteg=0; iInteg < theRule->n; iInteg++) {    
-                    double xsi    = theRule->xsi[iInteg];
+
+                for (iInteg=0; iInteg < theRule->n; iInteg++) {
+                    double xsi  = theRule->xsi[iInteg];
                     double weight = theRule->weight[iInteg];  
                     femDiscretePhi(theSpace,xsi,phi);
                     femDiscreteDphi(theSpace, xsi, dphidxsi);
+
+                    // Compute dx/dξ and dy/dξ
+                    double dxdxsi = 0.0;
                     double dydxsi = 0.0;
                     for (int k = 0; k < nLocal; k++) {
-                        dydxsi += y[k] * dphidxsi[k];  // Compute dy/dξ
+                        dxdxsi += x[k] * dphidxsi[k];  // dx/dξ
+                        dydxsi += y[k] * dphidxsi[k];  // dy/dξ
                     }
-                    double jac = fabs(dydxsi);  // Correct Jacobian
-                    for (i = 0; i < theSpace->n; i++) {
+
+                    // Compute Jacobian determinant
+                    double jac = sqrt(dxdxsi * dxdxsi + dydxsi * dydxsi);
+                    printf("jac = %f\n", jac);
+
+                    for (i = 0; i < nLocal; i++) {
+                        printf("B[mapU[%i]] = %f\n", mapU[i], B[mapU[i]]);
                         B[mapU[i]] += phi[i] * value * jac * weight; }}}
         }
     }
@@ -135,24 +155,21 @@ double* Bint;
 double *femElasticitySolve(femProblem *theProblem){
     femFullSystem *theSystem = theProblem->system;
 
-    femElasticityAssembleElements(theProblem);
-
-
+    for (int i = 0; i < theSystem->size; i++) {
+        theSystem->B[i] = 0;
+    }
 
     femElasticityAssembleNeumann(theProblem);
+    femElasticityAssembleElements(theProblem);
 
     Aint = malloc(theSystem->size * sizeof(double*));
-    
+    Bint = malloc(theSystem->size * sizeof(double));
     for (int i = 0; i < theSystem->size; i++) {
         Aint[i] = malloc(theSystem->size*sizeof(double));
+        Bint[i] = theSystem->B[i];
         for (int j = 0; j < theSystem->size; j++) {
             Aint[i][j] = theSystem->A[i][j];
         }
-    }
-
-    Bint = malloc(theSystem->size * sizeof(double));
-    for (int i = 0; i < theSystem->size; i++) {
-        Bint[i] = theSystem->B[i];
     }
 
     int* theConstrainedNodes = theProblem->constrainedNodes;
@@ -162,12 +179,14 @@ double *femElasticitySolve(femProblem *theProblem){
             femFullSystemConstrain(theSystem, i, value);
         }
     }
+
     femFullSystemEliminate(theSystem);
+
     for (int i = 0; i < theSystem->size; i++) {
         theProblem->soluce[i] = theSystem->B[i];
     }
 
-    return theSystem->B;
+    return theProblem->soluce;
 }
 
 double * femElasticityForces(femProblem *theProblem){        

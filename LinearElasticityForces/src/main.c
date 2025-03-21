@@ -40,6 +40,7 @@ int main(void)
     geoMeshImport();
     geoSetDomainName(0,"Symmetry");
     geoSetDomainName(7,"Bottom");
+    //geoSetDomainName(8, "Test");
     geoSetDomainName(1,"Top");
 
     geoMeshWrite("../data/elasticity.txt");
@@ -57,7 +58,8 @@ int main(void)
     femElasticityAddBoundaryCondition(theProblem,"Symmetry",DIRICHLET_X,0.0);
     femElasticityAddBoundaryCondition(theProblem,"Bottom",DIRICHLET_Y,0.0);
     femElasticityAddBoundaryCondition(theProblem,"Top",NEUMANN_Y,-1e4);
-    femElasticityPrint(theProblem);
+    //femElasticityAddBoundaryCondition(theProblem,"Test",NEUMANN_Y,-1e4);
+    //femElasticityPrint(theProblem);
 
 //
 //  -3- Resolution du probleme et calcul des forces

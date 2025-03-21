@@ -1,4 +1,7 @@
 #include "fem.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 
 void femElasticityAssembleElements(femProblem *theProblem){
@@ -12,6 +15,7 @@ void femElasticityAssembleElements(femProblem *theProblem){
     double x[4],y[4],phi[4],dphidxsi[4],dphideta[4],dphidx[4],dphidy[4];
     int iElem,iInteg,iEdge,i,j,d,map[4],mapX[4],mapY[4];
     int nLocal = theMesh->nLocalNode;
+    double *soluce = theProblem->soluce;
     double a   = theProblem->A;
     double b   = theProblem->B;
     double c   = theProblem->C;      
@@ -72,7 +76,7 @@ void femElasticityAssembleNeumann(femProblem *theProblem){
     femGeo         *theGeometry = theProblem->geometry;
     femNodes       *theNodes = theGeometry->theNodes;
     femMesh        *theEdges = theGeometry->theEdges;
-    double x[2],y[2],phi[2];
+    double x[2],y[2],phi[2], dphidxsi[2];
     int iBnd,iElem,iInteg,iEdge,i,j,d,map[2],mapU[2];
     int nLocal = 2;
     double *B  = theSystem->B;
@@ -93,9 +97,15 @@ void femElasticityAssembleNeumann(femProblem *theProblem){
                     double xsi    = theRule->xsi[iInteg];
                     double weight = theRule->weight[iInteg];  
                     femDiscretePhi(theSpace,xsi,phi);
-                    double jac = fabs(x[1] - x[0]) / 2.0;
+                    femDiscreteDphi(theSpace, xsi, dphidxsi);
+                    double dxdxsi = 0.0;
+                    for (int k = 0; k < nLocal; k++) {
+                        dxdxsi += x[k] * dphidxsi[k];  // Compute dx/dξ
+                    }
+                    double jac = fabs(dxdxsi);  // Correct Jacobian
                     for (i = 0; i < theSpace->n; i++) {
-                        B[mapU[i]] += phi[i] * value * jac * weight; }}}
+                        B[mapU[i]] = phi[i] * value * jac * weight; }}}
+
         } else if (type == NEUMANN_Y) {
             for (iElem = 0; iElem < theEdges->nElem; iElem++) {
                 for (j=0; j < nLocal; j++) {
@@ -107,20 +117,43 @@ void femElasticityAssembleNeumann(femProblem *theProblem){
                     double xsi    = theRule->xsi[iInteg];
                     double weight = theRule->weight[iInteg];  
                     femDiscretePhi(theSpace,xsi,phi);
-                    double jac = fabs(y[1] - y[0]) / 2.0;
+                    femDiscreteDphi(theSpace, xsi, dphidxsi);
+                    double dydxsi = 0.0;
+                    for (int k = 0; k < nLocal; k++) {
+                        dydxsi += y[k] * dphidxsi[k];  // Compute dy/dξ
+                    }
+                    double jac = fabs(dydxsi);  // Correct Jacobian
                     for (i = 0; i < theSpace->n; i++) {
-                        B[mapU[i]] += phi[i] * value * jac * weight; }}}}
-
+                        B[mapU[i]] += phi[i] * value * jac * weight; }}}
+        }
     }
 }
 
-
+double** Aint;
+double* Bint;
 
 double *femElasticitySolve(femProblem *theProblem){
     femFullSystem *theSystem = theProblem->system;
 
     femElasticityAssembleElements(theProblem);
+
+
+
     femElasticityAssembleNeumann(theProblem);
+
+    Aint = malloc(theSystem->size * sizeof(double*));
+    
+    for (int i = 0; i < theSystem->size; i++) {
+        Aint[i] = malloc(theSystem->size*sizeof(double));
+        for (int j = 0; j < theSystem->size; j++) {
+            Aint[i][j] = theSystem->A[i][j];
+        }
+    }
+
+    Bint = malloc(theSystem->size * sizeof(double));
+    for (int i = 0; i < theSystem->size; i++) {
+        Bint[i] = theSystem->B[i];
+    }
 
     int* theConstrainedNodes = theProblem->constrainedNodes;
     for (int i = 0; i < theSystem->size; i++) {
@@ -129,8 +162,12 @@ double *femElasticitySolve(femProblem *theProblem){
             femFullSystemConstrain(theSystem, i, value);
         }
     }
+    femFullSystemEliminate(theSystem);
+    for (int i = 0; i < theSystem->size; i++) {
+        theProblem->soluce[i] = theSystem->B[i];
+    }
 
-    return femFullSystemEliminate(theSystem);
+    return theSystem->B;
 }
 
 double * femElasticityForces(femProblem *theProblem){        
@@ -138,11 +175,22 @@ double * femElasticityForces(femProblem *theProblem){
     double *soluce = theProblem->soluce;
     double *residuals = theProblem->residuals;
     int size = theSystem->size;
-    double **A = theSystem->A;
-    double *B = theSystem->B;
+    double **A = Aint;
+    double *B = Bint;
     int i,j;
     for (i = 0; i < size; i++) {
-        residuals[i] = B[i];
-        for (j = 0; j < size; j++) residuals[i] -= A[i][j] * soluce[j]; }
+        residuals[i] = -B[i];
+        for (j = 0; j < size; j++) residuals[i] += A[i][j] * soluce[j]; }
+    for (i = 0; i < size; i++) {
+        free(A[i]);
+    }
+    free(A);
+    free(B);
     return residuals;
 }
+
+//  ==== Minimum displacement          :  0.0000000e+00 [m] 
+//  ==== Maximum displacement          :  4.5464210e-06 [m] 
+//  ==== Global horizontal force       :  2.6302062e-10 [N] 
+//  ==== Global vertical force         : -7.0221752e+04 [N] 
+//  ==== Weight                        :  5.0221752e+04 [N] 

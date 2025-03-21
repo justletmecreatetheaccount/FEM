@@ -9,6 +9,7 @@
  *
  */
  
+#include "fem.h"
 #include "glfem.h"
 
 double fun(double x, double y) 

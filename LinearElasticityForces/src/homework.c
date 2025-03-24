@@ -87,10 +87,39 @@ void femElasticityAssembleNeumann(femProblem *theProblem){
         femBoundaryType type = theCondition->type;
         double value = theCondition->value;
 
-        if (type == NEUMANN_X) {
+        if (type == NEUMANN_Y) {
             for (iElem = 0; iElem < theDomain->nElem; iElem++) {
                 for (j=0; j < nLocal; j++) {
-                    map[j] = theDomain->elem[iElem*nLocal+j];
+                    map[j] = theEdges->elem[theDomain->elem[iElem] * nLocal + j];
+                    mapU[j] = 2*map[j] + 1;
+                    x[j] = theNodes->X[map[j]];
+                    y[j] = theNodes->Y[map[j]];}
+
+                for (iInteg=0; iInteg < theRule->n; iInteg++) {
+                    double xsi  = theRule->xsi[iInteg];
+                    double weight = theRule->weight[iInteg];  
+                    femDiscretePhi(theSpace,xsi,phi);
+                    femDiscreteDphi(theSpace, xsi, dphidxsi);
+
+                    // Compute dx/dξ and dy/dξ
+                    double dxdxsi = 0.0;
+                    double dydxsi = 0.0;
+                    for (int k = 0; k < nLocal; k++) {
+                        dxdxsi += x[k] * dphidxsi[k];  // dx/dξ
+                        dydxsi += y[k] * dphidxsi[k];  // dy/dξ
+                    }
+
+                    // Compute Jacobian determinant
+                    double jac = sqrt(dxdxsi * dxdxsi + dydxsi * dydxsi);
+
+                    for (i = 0; i < nLocal; i++) {
+                        B[mapU[i]] += phi[i] * value * jac * weight; }}}
+
+
+        } else if (type == NEUMANN_X) {
+            for (iElem = 0; iElem < theDomain->nElem; iElem++) {
+                for (j=0; j < nLocal; j++) {
+                    map[j] = theEdges->elem[theDomain->elem[iElem] * nLocal + j];
                     mapU[j] = 2*map[j];
                     x[j] = theNodes->X[map[j]];
                     y[j] = theNodes->Y[map[j]];}
@@ -113,38 +142,6 @@ void femElasticityAssembleNeumann(femProblem *theProblem){
 
                     for (i = 0; i < theSpace->n; i++) {
                         B[mapU[i]] += phi[i] * value * weight * jac; }}}
-
-        } else if (type == NEUMANN_Y) {
-            for (iElem = 0; iElem < theDomain->nElem; iElem++) {
-                printf("iElem = %d\n", iElem);
-                for (j=0; j < nLocal; j++) {
-                    map[j] = theDomain->elem[iElem*nLocal+j];
-                    printf("map[j] = %d\n", map[j]);
-                    mapU[j] = 2*map[j] + 1;
-                    x[j] = theNodes->X[map[j]];
-                    y[j] = theNodes->Y[map[j]];}
-
-                for (iInteg=0; iInteg < theRule->n; iInteg++) {
-                    double xsi  = theRule->xsi[iInteg];
-                    double weight = theRule->weight[iInteg];  
-                    femDiscretePhi(theSpace,xsi,phi);
-                    femDiscreteDphi(theSpace, xsi, dphidxsi);
-
-                    // Compute dx/dξ and dy/dξ
-                    double dxdxsi = 0.0;
-                    double dydxsi = 0.0;
-                    for (int k = 0; k < nLocal; k++) {
-                        dxdxsi += x[k] * dphidxsi[k];  // dx/dξ
-                        dydxsi += y[k] * dphidxsi[k];  // dy/dξ
-                    }
-
-                    // Compute Jacobian determinant
-                    double jac = sqrt(dxdxsi * dxdxsi + dydxsi * dydxsi);
-                    printf("jac = %f\n", jac);
-
-                    for (i = 0; i < nLocal; i++) {
-                        printf("B[mapU[%i]] = %f\n", mapU[i], B[mapU[i]]);
-                        B[mapU[i]] += phi[i] * value * jac * weight; }}}
         }
     }
 }

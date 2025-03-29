@@ -9,15 +9,13 @@
 //  (4) Obtenir la geometrie en lisant un fichier .geo de GMSH
 
 double geoSize(double x, double y) {
-
-  femGeo *theGeometry = geoGetGeometry();
-  return theGeometry->h * (1.0 - 0.5 * x);
+  return 0.05;
 }
 
 void geoMeshGenerate(double lc) {
   femGeo *theGeometry = geoGetGeometry();
   double Lx = 1.0;
-  double Ly = 1.0;
+  double Ly = 2.0;
   theGeometry->LxPlate = Lx;
   theGeometry->LyPlate = Ly;
   theGeometry->h = Lx * lc;
@@ -30,22 +28,27 @@ void geoMeshGenerate(double lc) {
 
   int ierr;
   double r = w / 4;
-  int idRect = gmshModelOccAddRectangle(0.0, 0.0, 0.0, w, h, -1, 0.0, &ierr);
-  int idDisk = gmshModelOccAddDisk(w / 2.0, h / 2.0, 0.0, r, r, -1, NULL, 0, NULL, 0, &ierr);
-  int idSlit = gmshModelOccAddRectangle(w / 2.0, h / 2.0 - r, 0.0, w, 2.0 * r, -1, 0.0, &ierr);
-  int rect[] = {2, idRect};
-  int disk[] = {2, idDisk};
-  int slit[] = {2, idSlit};
+  int idRect = gmshModelOccAddRectangle(-w/2.0, -h/2.0, 0.0, w, h, -1, 0.0, &ierr);
+  int idHoleDown = gmshModelOccAddRectangle(-w/4.0, -3*h/8.0, 0.0, w/2.0, h/4.0, -1, 0.0, &ierr);
+  int idHoleUp = gmshModelOccAddRectangle(-w/4.0, h/8.0, 0.0, w/2.0, h/4.0, -1, 0.0, &ierr);
+    
 
-  gmshModelOccCut(rect, 2, disk, 2, NULL, NULL, NULL, NULL, NULL, -1, 1, 1, &ierr);
-  gmshModelOccCut(rect, 2, slit, 2, NULL, NULL, NULL, NULL, NULL, -1, 1, 1, &ierr);
+  int rect[] = {2, idRect};
+  int holeDown[] = {2, idHoleDown};
+  int holeUp[] = {2, idHoleUp};
+  gmshModelOccCut(rect, 2, holeDown, 2, NULL, NULL, NULL, NULL, NULL, -1, 1, 1, &ierr); 
+  ErrorGmsh(ierr);
+  gmshModelOccCut(rect, 2, holeUp, 2, NULL, NULL, NULL, NULL, NULL, -1, 1, 1, &ierr); 
+  ErrorGmsh(ierr);
   gmshModelOccSynchronize(&ierr);
 
   // Use a frontal delaunay algorithm
   gmshOptionSetNumber("Mesh.Algorithm", 6, &ierr);
   gmshOptionSetNumber("Mesh.SaveAll", 1, &ierr);
   gmshModelMeshGenerate(2, &ierr);
-
+  
+  //gmshFltkInitialize(&ierr);
+  //gmshFltkRun(&ierr);  //chk(ierr);
   return;
 }
 

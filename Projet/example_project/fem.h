@@ -23,7 +23,7 @@
 #define TRUE 1
 #define MAXNAME 256
 
-typedef enum { FEM_TRIANGLE, FEM_QUAD, FEM_EDGE} femElementType;
+typedef enum { FEM_TRIANGLE, FEM_QUAD, FEM_EDGE } femElementType;
 typedef enum { DIRICHLET_X, DIRICHLET_Y } femBoundaryType;
 typedef enum { PLANAR_STRESS, PLANAR_STRAIN, AXISYM } femElasticCase;
 
@@ -108,10 +108,12 @@ void geoSetDomainName(femGeo *theGeometry, int iDomain, char *name);
 int geoGetDomain(femGeo *theGeometry, char *name);
 void geoFinalize();
 
-femProblem *femElasticityCreate(femGeo *theGeometry, double E, double nu, double rho, double g, femElasticCase iCase);
+femProblem *femElasticityCreate(femGeo *theGeometry, double E, double nu,
+                                double rho, double g, femElasticCase iCase);
 void femElasticityFree(femProblem *theProblem);
 void femElasticityPrint(femProblem *theProblem);
-void femElasticityAddBoundaryCondition(femProblem *theProblem, char *nameDomain, femBoundaryType type, double value);
+void femElasticityAddBoundaryCondition(femProblem *theProblem, char *nameDomain,
+                                       femBoundaryType type, double value);
 double *femElasticitySolve(femProblem *theProblem);
 
 femIntegration *femIntegrationCreate(int n, femElementType type);
@@ -122,7 +124,8 @@ void femDiscreteFree(femDiscrete *mySpace);
 void femDiscretePrint(femDiscrete *mySpace);
 void femDiscreteXsi2(femDiscrete *mySpace, double *xsi, double *eta);
 void femDiscretePhi2(femDiscrete *mySpace, double xsi, double eta, double *phi);
-void femDiscreteDphi2(femDiscrete *mySpace, double xsi, double eta, double *dphidxsi, double *dphideta);
+void femDiscreteDphi2(femDiscrete *mySpace, double xsi, double eta,
+                      double *dphidxsi, double *dphideta);
 
 femFullSystem *femFullSystemCreate(int size);
 void femFullSystemFree(femFullSystem *mySystem);
@@ -138,6 +141,7 @@ void femError(char *text, int line, char *file);
 void femErrorScan(int test, int line, char *file);
 void femWarning(char *text, int line, char *file);
 
-void femSolutionWrite(int nNodes, int nfields, double *data, const char *filename);
+void femSolutionWrite(int nNodes, int nfields, double *data,
+                      const char *filename);
 
 #endif

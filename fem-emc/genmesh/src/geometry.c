@@ -8,83 +8,87 @@
 //  (3) Construire la geometrie avec les outils de GMSH
 //  (4) Obtenir la geometrie en lisant un fichier .geo de GMSH
 
+static double distanceToRectangleOutside(double x, double y,
+                                         double cx, double cy,
+                                         double halfW, double halfH)
+{
+    double dx = fabs(x - cx) - halfW;
+    double dy = fabs(y - cy) - halfH;
+    if (dx < 0.0) dx = 0.0;
+    if (dy < 0.0) dy = 0.0;
+    return sqrt(dx * dx + dy * dy);
+}
+
 double geoSize(double x, double y)
 {
-    femGeo *theGeometry = geoGetGeometry();
-    double h = theGeometry->h;
-    double w = theGeometry->LxPlate;
-    double plateHeight = theGeometry->LyPlate;
+    femGeo* theGeometry = geoGetGeometry();
     
-    // Smoothing parameters (tune to adjust interpolation steepness)
-    double holeSmooth = 1.0;    // Amplifies hole transition
-    double edgeSmooth = 1.0;    // Amplifies edge transition
+    // Base mesh size
+    double h  = theGeometry->h;
+    // Domain
+    double w  = theGeometry->LxPlate;
+    double l  = theGeometry->LyPlate;
     
-    // Hole settings
-    double lowerHoleW = w / 2.0, lowerHoleH = plateHeight / 4.0;
-    double lowerHoleX = 0.0,    lowerHoleY = -plateHeight / 4.0;
-    double upperHoleW = w / 2.0, upperHoleH = plateHeight / 4.0;
-    double upperHoleX = 0.0,    upperHoleY =  plateHeight / 4.0;
-    double cR = w / 20.0;
-    double transW = w / 8.0, hHoles = h / 2.5;
+    // Centered rectangle #1
+    double x0  = 0.0;
+    double y0  = -l / 4.0;
+    double w0  = w / 2.0;
+    double ht0 = l / 4.0;
+    double d0  = 0.5;   // Transition zone #1
+    double h0  = 0.05;  // Smaller mesh near rectangle #1
     
-    // Border settings
-    double borderRefine = h / 2.5;
-    double borderTransW = w / 6.0;
+    // Centered rectangle #2
+    double x1  = 0.0;
+    double y1  = (2.0 * l) / 8.0;
+    double w1  = w / 2.0;
+    double ht1 = l / 4.0; 
+    double d1  = 0.5;   // Transition zone #2
+    double h1  = 0.05;  // Smaller mesh near rectangle #2
     
-    // Start from base size
-    double result = h;
+    // Border transition
+    double d2 = 0.2;  // Transition zone near domain edges
+    double h2 = 0.1;  // Smaller mesh near domain edges
+
+    double result = h;  // Start with base mesh size
     
-    // Distances to lower hole
-    double dx = fabs(x - lowerHoleX) - lowerHoleW / 2.0 + cR;
-    double dy = fabs(y - lowerHoleY) - lowerHoleH / 2.0 + cR;
-    double distLower = (dx > 0 && dy > 0) ? sqrt(dx*dx + dy*dy) - cR
-                     : (dx > 0)           ? dx - cR
-                     : (dy > 0)           ? dy - cR
-                     : -fmin(-dx, -dy);
-    
-    // Distances to upper hole
-    dx = fabs(x - upperHoleX) - upperHoleW / 2.0 + cR;
-    dy = fabs(y - upperHoleY) - upperHoleH / 2.0 + cR;
-    double distUpper = (dx > 0 && dy > 0) ? sqrt(dx*dx + dy*dy) - cR
-                     : (dx > 0)           ? dx - cR
-                     : (dy > 0)           ? dy - cR
-                     : -fmin(-dx, -dy);
-    
-    // Interpolation near lower hole
-    if (distLower <= transW && distLower > 0) {
-        double d = distLower;
-        double a2 = holeSmooth * (3.0 * (h - hHoles) / (transW * transW));
-        double a3 = holeSmooth * (2.0 * (hHoles - h) / (transW * transW * transW));
-        double sizeNear = hHoles + a2 * (d * d) + a3 * (d * d * d);
-        result = fmin(result, sizeNear);
-    } else if (distLower <= 0) {
-        result = hHoles;
+    // Calculate distance to rectangle #1
+    double dist0 = distanceToRectangleOutside(x, y, x0, y0, w0 / 2.0, ht0 / 2.0);
+    if (dist0 <= d0) {
+        // Hermite interpolation
+        double a2 = 3.0 * (h - h0) / (d0 * d0);
+        double a3 = 2.0 * (h0 - h) / (d0 * d0 * d0);
+        double val0 = h0 + a2 * (dist0 * dist0) + a3 * (dist0 * dist0 * dist0);
+        if (val0 < result) {
+            result = val0;
+        }
     }
     
-    // Interpolation near upper hole
-    if (distUpper <= transW && distUpper > 0) {
-        double d = distUpper;
-        double a2 = holeSmooth * (3.0 * (h - hHoles) / (transW * transW));
-        double a3 = holeSmooth * (2.0 * (hHoles - h) / (transW * transW * transW));
-        double sizeNear = hHoles + a2 * (d * d) + a3 * (d * d * d);
-        result = fmin(result, sizeNear);
-    } else if (distUpper <= 0) {
-        result = hHoles;
+    // Calculate distance to rectangle #2
+    double dist1 = distanceToRectangleOutside(x, y, x1, y1, w1 / 2.0, ht1 / 2.0);
+    if (dist1 <= d1) {
+        double a2 = 3.0 * (h - h1) / (d1 * d1);
+        double a3 = 2.0 * (h1 - h) / (d1 * d1 * d1);
+        double val1 = h1 + a2 * (dist1 * dist1) + a3 * (dist1 * dist1 * dist1);
+        if (val1 < result) {
+            result = val1;
+        }
     }
     
-    // Interpolation near borders
-    double distLeft   = fabs(x + w / 2.0);
-    double distRight  = fabs(x - w / 2.0);
-    double distBottom = fabs(y + plateHeight / 2.0);
-    double distTop    = fabs(y - plateHeight / 2.0);
+    // Distance to domain edges
+    double distLeft   = x + w / 2.0;
+    double distRight  = (w / 2.0) - x;
+    double distBottom = y + l / 2.0;
+    double distTop    = (l / 2.0) - y;
     double distEdge   = fmin(fmin(distLeft, distRight), fmin(distBottom, distTop));
     
-    if (distEdge <= borderTransW) {
-        double d = distEdge;
-        double a2 = edgeSmooth * (3.0 * (h - borderRefine) / (borderTransW * borderTransW));
-        double a3 = edgeSmooth * (2.0 * (borderRefine - h) / (borderTransW * borderTransW * borderTransW));
-        double sizeEdge = borderRefine + a2 * (d * d) + a3 * (d * d * d);
-        result = fmin(result, sizeEdge);
+    // Hermite interpolation near edges
+    if (distEdge <= d2) {
+        double a2 = (3.0 * (h - h2)) / (d2 * d2);
+        double a3 = (2.0 * (h2 - h)) / (d2 * d2 * d2);
+        double val2 = h2 + a2 * (distEdge * distEdge) + a3 * (distEdge * distEdge * distEdge);
+        if (val2 < result) {
+            result = val2;
+        }
     }
     
     return result;

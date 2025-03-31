@@ -8,6 +8,7 @@
  */
 
 #include "fem.h"
+#include <stdio.h>
 
 femGeo theGeometry;
 
@@ -559,7 +560,7 @@ double* femConjugateGradient(femFullSystem* mySystem) {
   double* utility = malloc(sizeof(double) * size);
 
   // Initialize residual vector
-  dotMatrixVector(size, A, B, Residual);
+  dotMatrixVector(size, A, utility, Residual);
   substracVector(size, B, Residual, Residual);
 
   // Apply preconditioner: z = M⁻¹r

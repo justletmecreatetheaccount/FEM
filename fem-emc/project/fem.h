@@ -84,6 +84,7 @@ typedef struct {
 typedef struct {
     double *B;
     double **A;
+    double **L;
     int size;
 } femFullSystem;
 
@@ -158,7 +159,8 @@ void                femFullSystemFree(femFullSystem* mySystem);
 void                femFullSystemPrint(femFullSystem* mySystem);
 void                femFullSystemInit(femFullSystem* mySystem);
 void                femFullSystemAlloc(femFullSystem* mySystem, int size);
-double*             femConjugateGradient(femFullSystem* mySystem);
+double*             femConjugateGradientCholesky(femFullSystem* mySystem);
+double*             femConjugateGradientJacob(femFullSystem* mySystem);
 double*             femFullSystemEliminate(femFullSystem* mySystem);
 void                femFullSystemConstrain(femFullSystem* mySystem, int myNode, double value);
 

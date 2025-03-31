@@ -23,5 +23,5 @@ void elasticity_solve(const char *meshfile, const char *outfile, double E, doubl
 
   // free the allocated ressources
   femElasticityFree(theProblem);
-  femGeoFree(theGeometry);
+  geoFinalize(theGeometry);
 }

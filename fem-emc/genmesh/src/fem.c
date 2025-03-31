@@ -8,6 +8,8 @@
  */
 
 #include "fem.h"
+#include <math.h>
+#include <string.h>
 
 femGeo theGeometry;
 

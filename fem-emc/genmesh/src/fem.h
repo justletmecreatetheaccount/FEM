@@ -25,6 +25,7 @@
 #define TRUE 1
 #define MAXNAME 256
 
+
 typedef enum { FEM_TRIANGLE, FEM_EDGE } femElementType;
 typedef enum { DIRICHLET_X, DIRICHLET_Y, DIRICHLET_XY, DIRICHLET_N, DIRICHLET_T, DIRICHLET_NT, NEUMANN_X, NEUMANN_Y, NEUMANN_N, NEUMANN_T, UNDEFINED=-1} femBoundaryType;
 typedef enum { PLANAR_STRESS, PLANAR_STRAIN, AXISYM } femElasticCase;

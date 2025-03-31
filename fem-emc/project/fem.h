@@ -24,6 +24,7 @@
 #define FALSE 0 
 #define TRUE  1
 #define MAXNAME 256
+#define TOL 1.e-3
 
 typedef enum {FEM_TRIANGLE,FEM_QUAD,FEM_EDGE} femElementType;
 typedef enum {DIRICHLET_X,DIRICHLET_Y,NEUMANN_X,NEUMANN_Y} femBoundaryType;
@@ -157,6 +158,7 @@ void                femFullSystemFree(femFullSystem* mySystem);
 void                femFullSystemPrint(femFullSystem* mySystem);
 void                femFullSystemInit(femFullSystem* mySystem);
 void                femFullSystemAlloc(femFullSystem* mySystem, int size);
+double*             femConjugateGradient(femFullSystem* mySystem);
 double*             femFullSystemEliminate(femFullSystem* mySystem);
 void                femFullSystemConstrain(femFullSystem* mySystem, int myNode, double value);
 

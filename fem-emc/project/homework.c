@@ -1,6 +1,5 @@
 #include "fem.h"
-
-#include "fem.h"
+#include "genmesh/src/fem.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -179,11 +178,30 @@ double *femElasticitySolve(femProblem *theProblem){
         }
     }
 
-    femFullSystemEliminate(theSystem);
+    femConjugateGradient(theSystem);
 
     for (int i = 0; i < theSystem->size; i++) {
         theProblem->soluce[i] = theSystem->B[i];
     }
 
     return theProblem->soluce;
+}
+
+double * femElasticityForces(femProblem *theProblem){        
+    femFullSystem *theSystem = theProblem->system;
+    double *soluce = theProblem->soluce;
+    double *residuals = theProblem->residuals;
+    int size = theSystem->size;
+    double **A = Aint;
+    double *B = Bint;
+    int i,j;
+    for (i = 0; i < size; i++) {
+        residuals[i] = -B[i];
+        for (j = 0; j < size; j++) residuals[i] += A[i][j] * soluce[j]; }
+    for (i = 0; i < size; i++) {
+        free(A[i]);
+    }
+    free(A);
+    free(B);
+    return residuals;
 }

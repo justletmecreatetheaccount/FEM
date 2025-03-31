@@ -496,6 +496,93 @@ void femFullSystemPrint(femFullSystem *mySystem)
         printf(" :  %+.1e \n",B[i]); }
 }
 
+double dotVectors(int size, double *A, double *B) {
+  int i;
+  double result = 0;
+  for (i = 0; i < size; i++)
+    result += A[i] * B[i];
+  return result;
+}
+
+void dotScalarVector(int size, double A, double *B, double *C) {
+  int i;
+  for (i = 0; i < size; i++)
+    C[i] = A * B[i];
+}
+
+void dotMatrixVector(int size, double **A, double *B, double *C) {
+  int i, j;
+  for (i = 0; i < size; i++) {
+    C[i] = 0;
+    for (j = 0; j < size; j++)
+      C[i] += A[i][j] * B[j];
+  }
+}
+void substracVector(int size, double *A, double *B, double *C) {
+  int i;
+  for (i = 0; i < size; i++)
+    C[i] = A[i] - B[i];
+}
+
+void addVector(int size, double *A, double *B, double *C) {
+  int i;
+  for (i = 0; i < size; i++)
+    C[i] = A[i] + B[i];
+}
+
+void vectorNorm(int size, double *A, double *norm) {
+  int i;
+  *norm = 0;
+  for (i = 0; i < size; i++)
+    *norm += A[i] * A[i];
+  *norm = sqrt(*norm);
+}
+
+double* femConjugateGradient(femFullSystem* mySystem) {
+  double **A, *B, *soluce;
+
+  A = mySystem->A;
+  B = mySystem->B;
+  int size = mySystem->size;
+  double* Residual = malloc(sizeof(double) * size);
+  double old_residual_norm = 0;
+  double* search_direction = malloc(sizeof(double) * size);
+  double* new_search_direction = malloc(sizeof(double) * size);
+  double* utility = malloc(sizeof(double) * size);
+
+  // Initialize residual vector
+  dotMatrixVector(size, A, B, Residual);
+  substracVector(size, B, Residual, Residual);
+
+  // Initialize search direction vector
+  memcpy(search_direction, Residual, sizeof(double) * size);
+
+  // Compute initial squared residual norm
+  vectorNorm(size, Residual, &old_residual_norm);
+
+  // Iterate until convergence
+  while (old_residual_norm > TOL) {
+    dotMatrixVector(size, A, search_direction, new_search_direction);
+    double step_size = (old_residual_norm * old_residual_norm) / dotVectors(size, search_direction, new_search_direction);
+    // Update solution
+    dotScalarVector(size, step_size, search_direction, utility);
+    addVector(size, B, utility, B);
+    // Update residual
+    dotScalarVector(size, step_size, new_search_direction, utility);
+    substracVector(size, Residual, utility, Residual);
+    // Compute new squared residual norm
+    double new_residual_norm = 0;
+    vectorNorm(size, Residual, &new_residual_norm);
+    // Update search direction
+    double beta = (new_residual_norm * new_residual_norm) / (old_residual_norm * old_residual_norm);
+    dotScalarVector(size, beta, search_direction, utility);
+    addVector(size, Residual, utility, search_direction);
+    // Update old residual norm
+    old_residual_norm = new_residual_norm;
+  }
+  return B;
+}
+
 double* femFullSystemEliminate(femFullSystem *mySystem)
 {
     double  **A, *B, factor;

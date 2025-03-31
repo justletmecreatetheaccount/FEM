@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
   femGeo *theGeometry = geoGetGeometry();
 
   // OPTION 1 : Utilisation de GMSH avec OpenCascade
-  // theGeometry->h = 0.5;
+  theGeometry->h = 0.5;
   geoMeshGenerate(0.1 * clscale);
 
   // OPTION 2 : Utilisation de GMSH directement

@@ -18,7 +18,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/glfw/include)
 target_link_libraries(${EXEC_NAME} glfw ${OPENGL_gl_LIBRARY})
 
 find_library(gmsh gmsh)
-if (${gmsh} STREQUAL "gmsh-NOTFOUND")
+#if (${gmsh} STREQUAL "gmsh-NOTFOUND")
 # GMSH
     if(MSVC OR MSYS OR MINGW)
         set(GMSH_LIBRARY ${CMAKE_SOURCE_DIR}/gmsh/${GMSH_VERSION}.${GMSH_MINOR}-Windows64-sdk/lib/gmsh.lib)
@@ -51,10 +51,10 @@ if (${gmsh} STREQUAL "gmsh-NOTFOUND")
     message("GMSH_LIBRARY : ${GMSH_LIBRARY}")
     include_directories(${GMSH_INCLUDE_DIR})
     target_link_libraries(${EXEC_NAME} ${GMSH_LIBRARY})
-else()
-    message("Using system wide GMSH : ${gmsh}")
-    target_link_libraries(${EXEC_NAME} gmsh)
-endif()
+#else()
+#    message("Using system wide GMSH : ${gmsh}")
+#    target_link_libraries(${EXEC_NAME} gmsh)
+#endif()
 
 
 if(APPLE)

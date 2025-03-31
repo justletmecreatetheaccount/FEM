@@ -1,5 +1,6 @@
 #pragma once
 #include "defines.hpp"
+#include <vector>
 
 namespace fem {
 
@@ -13,9 +14,10 @@ struct Node {
 };
 
 template <ElementType T> struct Element {
-  int element_nodes[T]; // stores the nodes id (ie : their position in the mesh
-                        // array); the nodes are connected to the adjacent ones
-                        // in the array (the array "loops")
+  // stores the nodes id (ie : their position in the mesh array);
+  // the nodes are connected to the adjacent ones in the array (the array
+  // "loops")
+  std::array<int, T> element_nodes;
 };
 
 struct Discrete {
@@ -29,21 +31,21 @@ struct Discrete {
 };
 
 template <ElementType T> struct Integration {
-  const double xsi[T];
+  const double xsi[T]; // looks too clean to change
   const double eta[T];
   const double weight[T];
 };
 
 template <ElementType T> struct Mesh {
   ElementType mesh_type = T;
-  Element<T> *elements_lists;
+  std::vector<Element<T>> elements_lists;
   Integration<T> *integration_rule;
   Discrete *functions;
 };
 
 struct Domain {
   int number_of_elements;
-  Element<FEM_EDGE> **elements;
+  std::vector<Element<FEM_EDGE> *> elements;
   char name[MAXNAME];
 };
 
@@ -55,16 +57,16 @@ struct BoundaryCondition {
 
 template <ElementType T> struct Geomerty {
   int number_of_nodes;
-  Node *nodes_list;
+  std::vector<Node> nodes_list;
   Mesh<FEM_EDGE> *the_edge_mesh;
   Mesh<T> *the_inner_mesh;
   int number_of_domains;
-  Domain *domains_list;
+  std::vector<Domain> domains_list;
 };
 
 struct System {
-  double *B;
-  double **A;
+  std::vector<double> B;
+  std::vector<std::vector<double>> A;
   int size;
 };
 

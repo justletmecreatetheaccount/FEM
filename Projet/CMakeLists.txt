@@ -6,9 +6,6 @@ set(BUILD_SHARED_LIBS ON)
 
 include_directories(.)
 
-# Add the directory with the mesh generator
-add_subdirectory(genmesh)
-
 # Add the directory with your submission
 add_subdirectory(project)
 

@@ -35,7 +35,7 @@ double geoSize(double x, double y)
     double w0  = w / 2.0;
     double ht0 = l / 4.0;
     double d0  = 0.5;   // Transition zone #1
-    double h0  = 0.05;  // Smaller mesh near rectangle #1
+    double h0  = 0.02;  // Smaller mesh near rectangle #1
     
     // Centered rectangle #2
     double x1  = 0.0;
@@ -43,11 +43,11 @@ double geoSize(double x, double y)
     double w1  = w / 2.0;
     double ht1 = l / 4.0; 
     double d1  = 0.5;   // Transition zone #2
-    double h1  = 0.05;  // Smaller mesh near rectangle #2
+    double h1  = 0.02;  // Smaller mesh near rectangle #2
     
     // Border transition
     double d2 = 0.2;  // Transition zone near domain edges
-    double h2 = 0.1;  // Smaller mesh near domain edges
+    double h2 = 0.02;  // Smaller mesh near domain edges
 
     double result = h;  // Start with base mesh size
     
@@ -110,7 +110,7 @@ void geoMeshGenerate(double lc) {
 
   int ierr;
   double r = w / 4;
-  int idRect = gmshModelOccAddRectangle(-w/2.0, -h/2.0, 0.0, w, h, -1, 0.1, &ierr);
+  int idRect = gmshModelOccAddRectangle(-w/2.0, -h/2.0, 0.0, w, h, -1, 0.0, &ierr);
   int idHoleDown = gmshModelOccAddRectangle(-w/4.0, -3*h/8.0, 0.0, w/2.0, h/4.0, -1, 0.1, &ierr);
   int idHoleUp = gmshModelOccAddRectangle(-w/4.0, h/8.0, 0.0, w/2.0, h/4.0, -1, 0.1, &ierr);
     

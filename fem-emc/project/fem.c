@@ -530,56 +530,76 @@ void addVector(int size, double *A, double *B, double *C) {
     C[i] = A[i] + B[i];
 }
 
-void vectorNorm(int size, double *A, double *norm) {
+double vectorNorm(int size, double *A) {
   int i;
-  *norm = 0;
+  double norm = 0;
   for (i = 0; i < size; i++)
-    *norm += A[i] * A[i];
-  *norm = sqrt(*norm);
+    norm += A[i] * A[i];
+  norm = sqrt(norm);
+  return norm;
+}
+
+void applyPreconditioner(femFullSystem* mySystem, double* r, double* z) {
+  // M is the diagonal of A
+  for (int i = 0; i < mySystem->size; i++) {
+    z[i] = r[i] / mySystem->A[i][i];
+  }
 }
 
 double* femConjugateGradient(femFullSystem* mySystem) {
-  double **A, *B, *soluce;
+  double **A, *B;
 
   A = mySystem->A;
   B = mySystem->B;
   int size = mySystem->size;
   double* Residual = malloc(sizeof(double) * size);
-  double old_residual_norm = 0;
+  double* PreconditionedResidual = malloc(sizeof(double) * size);
   double* search_direction = malloc(sizeof(double) * size);
-  double* new_search_direction = malloc(sizeof(double) * size);
+  double* A_search_direction = malloc(sizeof(double) * size);
   double* utility = malloc(sizeof(double) * size);
 
   // Initialize residual vector
   dotMatrixVector(size, A, B, Residual);
   substracVector(size, B, Residual, Residual);
 
-  // Initialize search direction vector
-  memcpy(search_direction, Residual, sizeof(double) * size);
+  // Apply preconditioner: z = M⁻¹r
+  applyPreconditioner(mySystem, Residual, PreconditionedResidual);
 
-  // Compute initial squared residual norm
-  vectorNorm(size, Residual, &old_residual_norm);
+  // Initialize search direction vector
+  memcpy(search_direction, PreconditionedResidual, sizeof(double) * size);
 
   // Iterate until convergence
-  while (old_residual_norm > TOL) {
-    dotMatrixVector(size, A, search_direction, new_search_direction);
-    double step_size = (old_residual_norm * old_residual_norm) / dotVectors(size, search_direction, new_search_direction);
+  while (1) {
+
+    dotMatrixVector(size, A, search_direction, A_search_direction);
+    double old_rz_product = dotVectors(size, Residual, PreconditionedResidual);
+    double step_size = old_rz_product / dotVectors(size, search_direction, A_search_direction);
+
     // Update solution
     dotScalarVector(size, step_size, search_direction, utility);
     addVector(size, B, utility, B);
+
     // Update residual
-    dotScalarVector(size, step_size, new_search_direction, utility);
+    dotScalarVector(size, step_size, A_search_direction, utility);
     substracVector(size, Residual, utility, Residual);
-    // Compute new squared residual norm
-    double new_residual_norm = 0;
-    vectorNorm(size, Residual, &new_residual_norm);
+
+    if (vectorNorm(size, Residual) < TOL) {
+        break;
+    }
+    
+    // Apply preconditioner: z = M⁻¹r
+    applyPreconditioner(mySystem, Residual, PreconditionedResidual);
+
     // Update search direction
-    double beta = (new_residual_norm * new_residual_norm) / (old_residual_norm * old_residual_norm);
+    double beta = dotVectors(size, Residual, PreconditionedResidual)/ old_rz_product;
     dotScalarVector(size, beta, search_direction, utility);
-    addVector(size, Residual, utility, search_direction);
-    // Update old residual norm
-    old_residual_norm = new_residual_norm;
+    addVector(size, PreconditionedResidual, utility, search_direction);
   }
+  free(Residual);
+  free(PreconditionedResidual);
+  free(search_direction);
+  free(A_search_direction);
+  free(utility);
   return B;
 }
 

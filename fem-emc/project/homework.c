@@ -178,8 +178,8 @@ double *femElasticitySolve(femProblem *theProblem){
         }
     }
 
-    femFullSystemEliminate(theSystem);
-    //femConjugateGradientCholesky(theSystem);
+    //femFullSystemEliminate(theSystem);
+    femConjugateGradientCholesky(theSystem);
     //femConjugateGradientJacob(theSystem);
 
     for (int i = 0; i < theSystem->size; i++) {

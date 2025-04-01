@@ -114,8 +114,22 @@ void geoMeshImport(void) {
   int nElemTriangles = nElem;
   gmshModelMeshGetElementsByType(3, &elem, &nElem, &node, &nNode, -1, 0, 1, &ierr);
   ErrorGmsh(ierr);
-  if (nElem != 0)
-    Error("Cannot consider quad geometry for contest :-(");
+  if (nElem != 0) {
+    femMesh *theElements = malloc(sizeof(femMesh));
+    theElements->nLocalNode = 4;
+    theElements->nodes = theNodes;
+    theElements->nElem = nElem;
+    theElements->elem = malloc(sizeof(int) * 4 * theElements->nElem);
+    for (int i = 0; i < theElements->nElem; i++)
+      for (int j = 0; j < theElements->nLocalNode; j++)
+        theElements->elem[4 * i + j] = node[4 * i + j] - 1;
+    theGeometry.theElements = theElements;
+    gmshFree(node);
+    gmshFree(elem);
+    printf("Geo     : Importing %d quads \n", theElements->nElem);
+  }
+  //if (nElem != 0)
+  //  Error("Cannot consider quad geometry for contest :-(");
 
   // Compute node renumbering
   femMesh *theElements = theGeometry.theElements;

@@ -8,6 +8,8 @@
  */
 
 #include "fem.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 femGeo theGeometry;
 
@@ -549,7 +551,6 @@ void applyPreconditionerJacob(femFullSystem* mySystem, double* r, double* z) {
 void incompleteCholesky(femFullSystem* mySystem) {
   int size = mySystem->size;
   double **A = mySystem->A;
-  double *B = mySystem->B;
   double **L = malloc(sizeof(double*) * size);
   for (int i = 0; i < size; i++) {
     L[i] = malloc(sizeof(double) * size);
@@ -678,6 +679,7 @@ double* femConjugateGradientCholesky(femFullSystem* mySystem) {
   memcpy(search_direction, PreconditionedResidual, sizeof(double) * size);
 
   // Iterate until convergence
+  int iter = 0;
   while (1) {
 
     dotMatrixVector(size, A, search_direction, A_search_direction);
@@ -691,9 +693,10 @@ double* femConjugateGradientCholesky(femFullSystem* mySystem) {
     // Update residual
     dotScalarVector(size, step_size, A_search_direction, utility);
     substracVector(size, Residual, utility, Residual);
-
+    iter++;
     if (vectorNorm(size, Residual) < TOL) {
-        break;
+      printf("Converged in %d iterations\n", iter);
+      break;
     }
     
     // Apply preconditioner: z = M⁻¹r
@@ -709,6 +712,7 @@ double* femConjugateGradientCholesky(femFullSystem* mySystem) {
   free(search_direction);
   free(A_search_direction);
   free(utility);
+  free(mySystem->L);
   return B;
 }
 

@@ -42,7 +42,11 @@ void geoMeshGenerate(double lc) {
   gmshModelOccSynchronize(&ierr);
 
   // Use a frontal delaunay algorithm
-  gmshOptionSetNumber("Mesh.Algorithm", 6, &ierr);
+  //gmshOptionSetNumber("Mesh.Algorithm", 6, &ierr);
+  gmshOptionSetNumber("Mesh.RecombineAll", 1, &ierr);
+  gmshOptionSetNumber("Mesh.Algorithm", 8, &ierr);  //chk(ierr);
+  gmshOptionSetNumber("Mesh.RecombinationAlgorithm", 1.0, &ierr);  //chk(ierr);
+  gmshModelGeoMeshSetRecombine(2,1,45,&ierr);  //chk(ierr);
   gmshOptionSetNumber("Mesh.SaveAll", 1, &ierr);
   gmshModelMeshGenerate(2, &ierr);
 

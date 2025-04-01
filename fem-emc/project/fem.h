@@ -124,7 +124,7 @@ void                geoMeshImport();
 void                geoMeshPrint();
 void                geoMeshWrite(const char *filename);
 femGeo*             geoMeshRead(const char *filename);
-void femSolutionWrite(int nNodes, int nfields, double *data, const char *filename);
+void                femSolutionWrite(int nNodes, int nfields, double *data, const char *filename);
 void                geoSetDomainName(int iDomain, char *name);
 int                 geoGetDomain(char *name);
 void                geoFinalize();
@@ -159,7 +159,8 @@ void                femFullSystemFree(femFullSystem* mySystem);
 void                femFullSystemPrint(femFullSystem* mySystem);
 void                femFullSystemInit(femFullSystem* mySystem);
 void                femFullSystemAlloc(femFullSystem* mySystem, int size);
-double*             femConjugateGradient(femFullSystem* mySystem);
+double*             femConjugateGradientJacob(femFullSystem* mySystem);
+double*             femConjugateGradientCholesky(femFullSystem* mySystem);
 double*             femFullSystemEliminate(femFullSystem* mySystem);
 void                femFullSystemConstrain(femFullSystem* mySystem, int myNode, double value);
 

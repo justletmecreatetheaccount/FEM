@@ -84,6 +84,7 @@ typedef struct {
 typedef struct {
     double *B;
     double **A;
+    double **L;
     int size;
 } femFullSystem;
 

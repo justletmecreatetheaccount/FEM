@@ -539,11 +539,145 @@ double vectorNorm(int size, double *A) {
   return norm;
 }
 
-void applyPreconditioner(femFullSystem* mySystem, double* r, double* z) {
+void applyPreconditionerJacob(femFullSystem* mySystem, double* r, double* z) {
   // M is the diagonal of A
   for (int i = 0; i < mySystem->size; i++) {
     z[i] = r[i] / mySystem->A[i][i];
   }
+}
+
+void applyPreconditionerCholesky(femFullSystem* mySystem, double* r, double* z) {
+  // First perform forward substitution (L solve)
+  for (int i = 0; i < mySystem->size; i++) {
+    z[i] = r[i];
+    for (int j = 0; j < i; j++) {
+      z[i] -= mySystem->L[i][j] * z[j];
+    }
+    z[i] /= mySystem->L[i][i];
+  }
+  
+  // Then perform backward substitution (Lᵀ solve)
+  for (int i = mySystem->size - 1; i >= 0; i--) {
+    for (int j = i + 1; j < mySystem->size; j++) {
+      z[i] -= mySystem->L[j][i] * z[j]; // Note L[j][i] for Lᵀ
+    }
+    z[i] /= mySystem->L[i][i];
+  }
+}
+
+double* femConjugateGradientJacob(femFullSystem* mySystem) {
+  double **A, *B;
+
+  A = mySystem->A;
+  B = mySystem->B;
+  int size = mySystem->size;
+  double* Residual = malloc(sizeof(double) * size);
+  double* PreconditionedResidual = malloc(sizeof(double) * size);
+  double* search_direction = malloc(sizeof(double) * size);
+  double* A_search_direction = malloc(sizeof(double) * size);
+  double* utility = malloc(sizeof(double) * size);
+
+  // Initialize residual vector
+  dotMatrixVector(size, A, utility, Residual);
+  substracVector(size, B, Residual, Residual);
+
+  // Apply preconditioner: z = M⁻¹r
+  applyPreconditionerJacob(mySystem, Residual, PreconditionedResidual);
+
+  // Initialize search direction vector
+  memcpy(search_direction, PreconditionedResidual, sizeof(double) * size);
+
+  // Iterate until convergence
+  while (1) {
+
+    dotMatrixVector(size, A, search_direction, A_search_direction);
+    double old_rz_product = dotVectors(size, Residual, PreconditionedResidual);
+    double step_size = old_rz_product / dotVectors(size, search_direction, A_search_direction);
+
+    // Update solution
+    dotScalarVector(size, step_size, search_direction, utility);
+    addVector(size, B, utility, B);
+
+    // Update residual
+    dotScalarVector(size, step_size, A_search_direction, utility);
+    substracVector(size, Residual, utility, Residual);
+
+    if (vectorNorm(size, Residual) < TOL) {
+        break;
+    }
+    
+    // Apply preconditioner: z = M⁻¹r
+    applyPreconditionerJacob(mySystem, Residual, PreconditionedResidual);
+
+    // Update search direction
+    double beta = dotVectors(size, Residual, PreconditionedResidual)/ old_rz_product;
+    dotScalarVector(size, beta, search_direction, utility);
+    addVector(size, PreconditionedResidual, utility, search_direction);
+  }
+  free(Residual);
+  free(PreconditionedResidual);
+  free(search_direction);
+  free(A_search_direction);
+  free(utility);
+  return B;
+}
+
+double* femConjugateGradientCholesky(femFullSystem* mySystem) {
+  incompleteCholesky(mySystem);
+  double **A, *B;
+
+  A = mySystem->A;
+  B = mySystem->B;
+  int size = mySystem->size;
+  double* Residual = malloc(sizeof(double) * size);
+  double* PreconditionedResidual = malloc(sizeof(double) * size);
+  double* search_direction = malloc(sizeof(double) * size);
+  double* A_search_direction = malloc(sizeof(double) * size);
+  double* utility = malloc(sizeof(double) * size);
+
+  // Initialize residual vector
+  dotMatrixVector(size, A, utility, Residual);
+  substracVector(size, B, Residual, Residual);
+
+  // Apply preconditioner: z = M⁻¹r
+  applyPreconditionerCholesky(mySystem, Residual, PreconditionedResidual);
+
+  // Initialize search direction vector
+  memcpy(search_direction, PreconditionedResidual, sizeof(double) * size);
+
+  // Iterate until convergence
+  while (1) {
+
+    dotMatrixVector(size, A, search_direction, A_search_direction);
+    double old_rz_product = dotVectors(size, Residual, PreconditionedResidual);
+    double step_size = old_rz_product / dotVectors(size, search_direction, A_search_direction);
+
+    // Update solution
+    dotScalarVector(size, step_size, search_direction, utility);
+    addVector(size, B, utility, B);
+
+    // Update residual
+    dotScalarVector(size, step_size, A_search_direction, utility);
+    substracVector(size, Residual, utility, Residual);
+
+    if (vectorNorm(size, Residual) < TOL) {
+        break;
+    }
+    
+    // Apply preconditioner: z = M⁻¹r
+    applyPreconditionerCholesky(mySystem, Residual, PreconditionedResidual);
+
+    // Update search direction
+    double beta = dotVectors(size, Residual, PreconditionedResidual)/ old_rz_product;
+    dotScalarVector(size, beta, search_direction, utility);
+    addVector(size, PreconditionedResidual, utility, search_direction);
+  }
+  free(Residual);
+  free(PreconditionedResidual);
+  free(search_direction);
+  free(A_search_direction);
+  free(utility);
+  return B;
 }
 
 double* femConjugateGradient(femFullSystem* mySystem) {

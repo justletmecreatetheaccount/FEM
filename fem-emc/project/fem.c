@@ -20,7 +20,6 @@ double geoGmshSize(int dim, int tag, double x, double y, double z, double lc, vo
                                                 { return theGeometry.geoSize(x,y);    }
 void geoInitialize() 
 {
-    int ierr;
     theGeometry.geoSize = geoSizeDefault;
     theGeometry.theNodes = NULL;
     theGeometry.theElements = NULL;
@@ -31,7 +30,6 @@ void geoInitialize()
 
 void geoFinalize() 
 {
-    int ierr;
     
     if (theGeometry.theNodes) {
         free(theGeometry.theNodes->X);
@@ -50,9 +48,9 @@ void geoFinalize()
 }
 
 
-void geoSetSizeCallback(double (*geoSize)(double x, double y)) 
+void geoSetSizeCallback(double (*func)(double x, double y)) 
 {
-    theGeometry.geoSize = geoSize; }
+    theGeometry.geoSize = func; }
 
 
 void geoMeshPrint() 
@@ -768,7 +766,7 @@ void  femFullSystemConstrain(femFullSystem *mySystem,
 }
 
 
-femProblem *femElasticityCreate(femGeo* theGeometry, 
+femProblem *femElasticityCreate(femGeo* theGeo, 
                   double E, double nu, double rho, double g, femElasticCase iCase)
 {
     femProblem *theProblem = malloc(sizeof(femProblem));
@@ -790,7 +788,7 @@ femProblem *femElasticityCreate(femGeo* theGeometry,
     theProblem->nBoundaryConditions = 0;
     theProblem->conditions = NULL;
     
-    int size = 2*theGeometry->theNodes->nNodes;
+    int size = 2*theGeo->theNodes->nNodes;
     theProblem->constrainedNodes = malloc(size*sizeof(int));
     theProblem->soluce = malloc(size*sizeof(double));
     theProblem->residuals = malloc(size*sizeof(double));
@@ -801,11 +799,11 @@ femProblem *femElasticityCreate(femGeo* theGeometry,
 
 
     
-    theProblem->geometry = theGeometry;  
-    if (theGeometry->theElements->nLocalNode == 3) {
+    theProblem->geometry = theGeo;  
+    if (theGeo->theElements->nLocalNode == 3) {
         theProblem->space    = femDiscreteCreate(3,FEM_TRIANGLE);
         theProblem->rule     = femIntegrationCreate(3,FEM_TRIANGLE); }
-    if (theGeometry->theElements->nLocalNode == 4) {
+    if (theGeo->theElements->nLocalNode == 4) {
         theProblem->space    = femDiscreteCreate(4,FEM_QUAD);
         theProblem->rule     = femIntegrationCreate(4,FEM_QUAD); }
     theProblem->spaceEdge    = femDiscreteCreate(2,FEM_EDGE);
@@ -889,12 +887,12 @@ void femElasticityPrint(femProblem *theProblem)
 
 double femElasticityIntegrate(femProblem *theProblem, double (*f)(double x, double y)){
     femIntegration *theRule = theProblem->rule;
-    femGeo         *theGeometry = theProblem->geometry;
-    femNodes       *theNodes = theGeometry->theNodes;
-    femMesh        *theMesh = theGeometry->theElements;
+    femGeo         *theGeo = theProblem->geometry;
+    femNodes       *theNodes = theGeo->theNodes;
+    femMesh        *theMesh = theGeo->theElements;
     femDiscrete    *theSpace = theProblem->space;
 
-    double x[4],y[4],phi[4],dphidxsi[4],dphideta[4],dphidx[4],dphidy[4];
+    double x[4],y[4],phi[4],dphidxsi[4],dphideta[4];
     int iElem,iInteg,i,map[4];
     int nLocal = theMesh->nLocalNode;
     double value = 0.0;

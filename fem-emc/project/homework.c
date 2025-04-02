@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 void femElasticityAssembleElements(femProblem *theProblem){
     femFullSystem  *theSystem = theProblem->system;
     femIntegration *theRule = theProblem->rule;
@@ -178,8 +177,8 @@ double *femElasticitySolve(femProblem *theProblem){
         }
     }
 
-    //femFullSystemEliminate(theSystem);
-    femConjugateGradientCholesky(theSystem);
+    femFullSystemEliminate(theSystem);
+    //femConjugateGradientCholesky(theSystem);
 
     for (int i = 0; i < theSystem->size; i++) {
         theProblem->soluce[i] = theSystem->B[i];

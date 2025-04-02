@@ -810,8 +810,8 @@ femProblem *femElasticityCreate(femGeo* theGeo,
     theProblem->ruleEdge     = femIntegrationCreate(2,FEM_EDGE); 
     theProblem->system       = femFullSystemCreate(size); 
 
-    femDiscretePrint(theProblem->space);   
-    femDiscretePrint(theProblem->spaceEdge);  
+    //femDiscretePrint(theProblem->space);   
+    //femDiscretePrint(theProblem->spaceEdge);  
   
     return theProblem;
 }

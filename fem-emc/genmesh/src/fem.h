@@ -48,9 +48,9 @@ typedef struct {
 
 
 typedef struct {
-    double xPlate, yPlate, LxPlate, LyPlate;
-    double xHole, yHole, rHole, hHole, dHole;
-    double xNotch, yNotch, rNotch, hNotch, dNotch;
+    double x_plate, y_plate, w_plate, h_plate;
+    double x_hole1, y_hole1, w_hole1, h_hole1;
+    double x_hole2, y_hole2, w_hole2, h_hole2;
     double h;
     double (*geoSize)(double x, double y);
     femNodes *theNodes;

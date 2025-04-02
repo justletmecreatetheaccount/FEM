@@ -23,7 +23,7 @@ double geoSize(double x, double y)
     double halfW0 = 0.5 * theGeometry->w_hole1;
     double halfH0 = 0.5 * theGeometry->h_hole1;
     double d0 = 0.5;      // transition zone for hole 1
-    double h0 = 0.005;    // refined mesh size near hole 1
+    double h0 = 0.01;    // refined mesh size near hole 1
 
     double x1 = theGeometry->x_hole2 + 0.5 * theGeometry->w_hole2;  // center X
     double y1 = theGeometry->y_hole2 + 0.5 * theGeometry->h_hole2;  // center Y

@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
     if (argc < 2)
     {
         printf("\033[34m[INFO]You can to specifiy more arguments when creating the mesh, the first should 1 or 0 to create triangles or quads and the second 1 or 0 to plot it or not\033[0m\n");
-
+        tri = 0;
     } else {
         tri = *argv[1];
         if (argc == 3){
@@ -60,9 +60,6 @@ int main(int argc, char *argv[])
         theGeometry->elementType = FEM_TRIANGLE;
     }
     if (tri == '0'){
-        theGeometry->elementType = FEM_QUAD;
-    }
-    if (tri != '1' && tri != '0'){
         theGeometry->elementType = FEM_QUAD;
     }
 

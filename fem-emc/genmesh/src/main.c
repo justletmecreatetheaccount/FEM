@@ -12,8 +12,24 @@
 #include "glfem.h"
 
 
-int main(void)
-{  
+int main(int argc, char *argv[])
+{   char tri;
+    char plot;
+    if (argc < 2)
+    {
+        printf("\033[34m[INFO]You can to specifiy more arguments when creating the mesh, the first should 1 or 0 to create triangles or quads and the second 1 or 0 to plot it or not\033[0m\n");
+
+    } else {
+        tri = *argv[1];
+        if (argc == 3){
+            plot = *argv[2];
+        } else {
+            plot = 0;
+        }
+    }
+
+
+    
     geoInitialize();
     femGeo* theGeometry = geoGetGeometry();
     theGeometry->elementType = FEM_QUAD;
@@ -35,9 +51,21 @@ int main(void)
     theGeometry->w_hole2 = w / 2.0;
     theGeometry->h_hole2 = h / 4.0;
     
+    theGeometry->d = 0.5;// transition zone for hole
+    theGeometry->s = 0.05;// refined mesh size near hole 1
+
     theGeometry->h = w * 0.1;
 
-    theGeometry->elementType = FEM_QUAD;
+    if (tri == '1'){
+        theGeometry->elementType = FEM_TRIANGLE;
+    }
+    if (tri == '0'){
+        theGeometry->elementType = FEM_QUAD;
+    }
+    if (tri != '1' && tri != '0'){
+        theGeometry->elementType = FEM_QUAD;
+    }
+
   
     geoMeshGenerate();
     geoMeshImport();
@@ -73,10 +101,9 @@ int main(void)
     
         
 
-//
-//  -6- Visualisation du maillage
-//  
-    
+
+
+
     double *meshSizeField = malloc(theGeometry->theNodes->nNodes*sizeof(double));
     femNodes *theNodes = theGeometry->theNodes;
     for(int i=0; i < theNodes->nNodes; ++i)
@@ -86,12 +113,38 @@ int main(void)
     printf(" ==== Global requested h : %14.7e \n",theGeometry->h);
     printf(" ==== Minimum h          : %14.7e \n",hMin);
     printf(" ==== Maximum h          : %14.7e \n",hMax);
- 
+    printf("\033[32m[SUCCESS] Le maillage a bien été générer\033[0m\n");
     
+    if (plot == '1'){
+        char theMessage[MAXNAME];
+    
+    
+        GLFWwindow* window = glfemInit("Maillage Gr 29");
+        glfwMakeContextCurrent(window);
 
+        do {
+            int w,h;
+            glfwGetFramebufferSize(window,&w,&h);
+            glfemReshapeWindows(theGeometry->theNodes,w,h);
+
+
+            glfemPlotField(theGeometry->theElements,meshSizeField);
+            glfemPlotMesh(theGeometry->theElements); 
+            sprintf(theMessage, "Number of elements : %d ",theGeometry->theElements->nElem);
+            glColor3f(1.0,0.0,0.0); glfemMessage(theMessage);
+
+                
+            glfwSwapBuffers(window);
+            glfwPollEvents();
+        } while( glfwGetKey(window,GLFW_KEY_ESCAPE) != GLFW_PRESS &&
+                glfwWindowShouldClose(window) != 1 );
+
+        glfwTerminate();    
+    }
+    
     free(meshSizeField);  
     geoFinalize();
-    glfwTerminate(); 
+
  
     
     exit(EXIT_SUCCESS);

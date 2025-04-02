@@ -55,7 +55,7 @@ typedef struct {
     double x_plate, y_plate, w_plate, h_plate;
     double x_hole1, y_hole1, w_hole1, h_hole1;
     double x_hole2, y_hole2, w_hole2, h_hole2;
-    double h;
+    double h, s, d;
     femElementType elementType;
     double (*geoSize)(double x, double y);
     femNodes *theNodes;

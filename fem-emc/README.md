@@ -73,3 +73,28 @@ Ci dessous la structure du projet pour un programme qui à déjà tourner et ave
 └── validate.py                 <- python program to compare meshes
 
 ```
+
+### Initialisation
+
+Pour initialiser le projet, il faut creér les dossier de build dans `./build/`et `./genmesh/build/`
+
+## Lancer le programme
+
+### Générer un maillage
+
+Pour générer un maillage il faut d'abords naviguer dans `./genmesh/build/` ensuite executer
+```sh
+cmake ..
+```
+ce qui va générer les fichiers de build, ensuite on compile le programme de génération avec
+```sh
+make
+```
+et enfin, on peut faire tourner l'exécutable avec 
+```
+./genmesh
+```
+L'exécutable peut également prendre deux paramètres en entrée (des 0 ou 1) qui nous disent si l'exécutable dois utiliser des quads ou non (0 pour quad 1 pour triangle), le programme choisis les quads par défaut, exemple : `./genmesh 1` pour des triangles. Le deuxième paramètre est relatif au plot, pour visualiser ou non le champ de la taille des éléments (0 pour ne pas ouvrir de fenêtre et 1 pour en ouvrir une) autre exemple : `./genmesh 0 1` pour ouvrir une fenetre avec des quads
+
+### Résoudre le problème
+

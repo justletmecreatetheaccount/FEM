@@ -8,18 +8,17 @@
  */
 
 #include "fem.h"
-#include <math.h>
-#include <string.h>
 
 femGeo theGeometry;
 
 femGeo *geoGetGeometry()                        { return &theGeometry; }
 
-double geoSizeDefault(double x, double y)       { return 1.0; }
+double geoSizeDefault(double x, double y)       { return theGeometry.h; }
 
 double geoGmshSize(int dim, int tag, double x, double y, double z, double lc, void *data)
                                                 { return theGeometry.geoSize(x,y);    }
-void geoInitialize() {
+void geoInitialize() 
+{
     int ierr;
     theGeometry.geoSize = geoSizeDefault;
     gmshInitialize(0,NULL,1,0,&ierr);                         ErrorGmsh(ierr);
@@ -32,7 +31,8 @@ void geoInitialize() {
     theGeometry.theDomains = NULL;
 }
 
-void geoFinalize() {
+void geoFinalize() 
+{
     int ierr;
     
     if (theGeometry.theNodes) {
@@ -53,22 +53,19 @@ void geoFinalize() {
 }
 
 
-void geoSetSizeCallback(double (*geoSize)(double x, double y)) {
+void geoSetSizeCallback(double (*geoSize)(double x, double y)) 
+{
     theGeometry.geoSize = geoSize; }
 
 
-static int cmp_size_t(const void *a, const void *b){
-    return (int) (*(const size_t*) a - * (const size_t*) b);
-}
-
-void geoMeshImport() {
+void geoMeshImport() 
+{
     int ierr;
     
     /* Importing nodes */
     
     size_t nNode,n,m,*node;
     double *xyz,*trash;
- //   gmshModelMeshRenumberNodes(&ierr);                        ErrorGmsh(ierr);
     gmshModelMeshGetNodes(&node,&nNode,&xyz,&n,
                          &trash,&m,-1,-1,0,0,&ierr);          ErrorGmsh(ierr);                         
     femNodes *theNodes = malloc(sizeof(femNodes));
@@ -85,6 +82,7 @@ void geoMeshImport() {
     printf("Geo     : Importing %d nodes \n",theGeometry.theNodes->nNodes);
        
     /* Importing elements */
+    /* Pas super joli : a ameliorer pour eviter la triple copie */
         
     size_t nElem, *elem;
     gmshModelMeshGetElementsByType(1,&elem,&nElem,
@@ -105,18 +103,40 @@ void geoMeshImport() {
   
     gmshModelMeshGetElementsByType(2,&elem,&nElem,
                                &node,&nNode,-1,0,1,&ierr);    ErrorGmsh(ierr);
-    femMesh *theElements = malloc(sizeof(femMesh));
-    theElements->nLocalNode = 3;
-    theElements->nodes = theNodes;
-    theElements->nElem = nElem;  
-    theElements->elem = malloc(sizeof(int)*3*theElements->nElem);
-    for (int i = 0; i < theElements->nElem; i++)
-        for (int j = 0; j < theElements->nLocalNode; j++)
-            theElements->elem[3*i+j] = node[3*i+j]-1;  
-    theGeometry.theElements = theElements;
-    gmshFree(node);
-    gmshFree(elem);
-    printf("Geo     : Importing %d elements \n",theElements->nElem);
+    if (nElem != 0) {
+      femMesh *theElements = malloc(sizeof(femMesh));
+      theElements->nLocalNode = 3;
+      theElements->nodes = theNodes;
+      theElements->nElem = nElem;  
+      theElements->elem = malloc(sizeof(int)*3*theElements->nElem);
+      for (int i = 0; i < theElements->nElem; i++)
+          for (int j = 0; j < theElements->nLocalNode; j++)
+              theElements->elem[3*i+j] = node[3*i+j]-1;  
+      theGeometry.theElements = theElements;
+      gmshFree(node);
+      gmshFree(elem);
+      printf("Geo     : Importing %d triangles \n",theElements->nElem); }
+    
+    int nElemTriangles = nElem;
+    gmshModelMeshGetElementsByType(3,&elem,&nElem,
+                               &node,&nNode,-1,0,1,&ierr);    ErrorGmsh(ierr);
+    if (nElem != 0 && nElemTriangles != 0)  
+      Error("Cannot consider hybrid geometry with triangles and quads :-(");                       
+                               
+    if (nElem != 0) {
+      femMesh *theElements = malloc(sizeof(femMesh));
+      theElements->nLocalNode = 4;
+      theElements->nodes = theNodes;
+      theElements->nElem = nElem;  
+      theElements->elem = malloc(sizeof(int)*4*theElements->nElem);
+      for (int i = 0; i < theElements->nElem; i++)
+          for (int j = 0; j < theElements->nLocalNode; j++)
+              theElements->elem[4*i+j] = node[4*i+j]-1;  
+      theGeometry.theElements = theElements;
+      gmshFree(node);
+      gmshFree(elem);
+      printf("Geo     : Importing %d quads \n",theElements->nElem); }
+
     
     /* Importing 1D entities */
   
@@ -153,22 +173,31 @@ void geoMeshImport() {
 
 }
 
-void geoMeshPrint() {
+void geoMeshPrint() 
+{
    femNodes *theNodes = theGeometry.theNodes;
-   printf("Number of nodes %d \n", theNodes->nNodes);
-   for (int i = 0; i < theNodes->nNodes; i++) {
-      printf("%6d : %14.7e %14.7e \n",i,theNodes->X[i],theNodes->Y[i]); }
+   if (theNodes != NULL) {
+      printf("Number of nodes %d \n", theNodes->nNodes);
+      for (int i = 0; i < theNodes->nNodes; i++) {
+        printf("%6d : %14.7e %14.7e \n",i,theNodes->X[i],theNodes->Y[i]); }}
    femMesh *theEdges = theGeometry.theEdges;
-   printf("Number of edges %d \n", theEdges->nElem);
-   int *elem = theEdges->elem;
-   for (int i = 0; i < theEdges->nElem; i++) {
-      printf("%6d : %6d %6d \n",i,elem[2*i],elem[2*i+1]); }
+   if (theEdges != NULL) {
+     printf("Number of edges %d \n", theEdges->nElem);
+     int *elem = theEdges->elem;
+     for (int i = 0; i < theEdges->nElem; i++) {
+        printf("%6d : %6d %6d \n",i,elem[2*i],elem[2*i+1]); }}
    femMesh *theElements = theGeometry.theElements;
-   printf("Number of triangles %d \n", theElements->nElem);
-   elem = theElements->elem;
-   for (int i = 0; i < theElements->nElem; i++) {
-      printf("%6d : %6d %6d %6d\n",i,elem[3*i],elem[3*i+1],elem[3*i+2]); }
- 
+   if (theElements != NULL) {
+     if (theElements->nLocalNode == 3) {
+        printf("Number of triangles %d \n", theElements->nElem);
+        int *elem = theElements->elem;
+        for (int i = 0; i < theElements->nElem; i++) {
+            printf("%6d : %6d %6d %6d\n",i,elem[3*i],elem[3*i+1],elem[3*i+2]); }}
+     if (theElements->nLocalNode == 4) {
+        printf("Number of quads %d \n", theElements->nElem);
+        int *elem = theElements->elem;
+        for (int i = 0; i < theElements->nElem; i++) {
+            printf("%6d : %6d %6d %6d %6d\n",i,elem[4*i],elem[4*i+1],elem[4*i+2],elem[4*i+3]); }}}
    int nDomains = theGeometry.nDomains;
    printf("Number of domains %d\n", nDomains);
    for (int iDomain = 0; iDomain < nDomains; iDomain++) {
@@ -186,7 +215,8 @@ void geoMeshPrint() {
 }
 
 
-void geoMeshWrite(const char *filename) {
+void geoMeshWrite(const char *filename) 
+{
    FILE* file = fopen(filename,"w");
  
    femNodes *theNodes = theGeometry.theNodes;
@@ -201,18 +231,24 @@ void geoMeshWrite(const char *filename) {
       fprintf(file,"%6d : %6d %6d \n",i,elem[2*i],elem[2*i+1]); }
       
    femMesh *theElements = theGeometry.theElements;
-   fprintf(file,"Number of triangles %d \n", theElements->nElem);
-   elem = theElements->elem;
-   for (int i = 0; i < theElements->nElem; i++) {
-      fprintf(file,"%6d : %6d %6d %6d\n",i,elem[3*i],elem[3*i+1],elem[3*i+2]); }
+   if (theElements->nLocalNode == 3) {
+      fprintf(file,"Number of triangles %d \n", theElements->nElem);
+      elem = theElements->elem;
+      for (int i = 0; i < theElements->nElem; i++) {
+          fprintf(file,"%6d : %6d %6d %6d\n",i,elem[3*i],elem[3*i+1],elem[3*i+2]); }}
+   if (theElements->nLocalNode == 4) {
+      fprintf(file,"Number of quads %d \n", theElements->nElem);
+      elem = theElements->elem;
+      for (int i = 0; i < theElements->nElem; i++) {
+          fprintf(file,"%6d : %6d %6d %6d %6d\n",i,elem[4*i],elem[4*i+1],elem[4*i+2],elem[4*i+3]); }}
      
    int nDomains = theGeometry.nDomains;
-   fprintf(file, "Number of domains %d\n", nDomains);
+   fprintf(file,"Number of domains %d\n", nDomains);
    for (int iDomain = 0; iDomain < nDomains; iDomain++) {
       femDomain *theDomain = theGeometry.theDomains[iDomain];
-      fprintf(file, "  Domain : %6d \n", iDomain);
-      fprintf(file, "  Name : %s\n", theDomain->name);
-      fprintf(file, "  Number of elements : %6d\n", theDomain->nElem);
+      fprintf(file,"  Domain : %6d \n", iDomain);
+      fprintf(file,"  Name : %s\n", theDomain->name);
+      fprintf(file,"  Number of elements : %6d\n", theDomain->nElem);
       for (int i=0; i < theDomain->nElem; i++){
           fprintf(file,"%6d",theDomain->elem[i]);
           if ((i+1) != theDomain->nElem  && (i+1) % 10 == 0) fprintf(file,"\n"); }
@@ -221,13 +257,198 @@ void geoMeshWrite(const char *filename) {
    fclose(file);
 }
 
+void geoMeshRead(const char *filename) 
+{
+   FILE* file = fopen(filename,"r");
+   
+   int trash, *elem;
+   
+   femNodes *theNodes = malloc(sizeof(femNodes));
+   theGeometry.theNodes = theNodes;
+   ErrorScan(fscanf(file, "Number of nodes %d \n", &theNodes->nNodes));
+   theNodes->X = malloc(sizeof(double)*(theNodes->nNodes));
+   theNodes->Y = malloc(sizeof(double)*(theNodes->nNodes));
+   for (int i = 0; i < theNodes->nNodes; i++) {
+       ErrorScan(fscanf(file,"%d : %le %le \n",&trash,&theNodes->X[i],&theNodes->Y[i]));} 
 
-void geoSetDomainName(int iDomain, char *name) {
-  if (iDomain >= theGeometry.nDomains)  Error("Illegal domain number");
-  sprintf(theGeometry.theDomains[iDomain]->name,"%s",name);
+   femMesh *theEdges = malloc(sizeof(femMesh));
+   theGeometry.theEdges = theEdges;
+   theEdges->nLocalNode = 2;
+   theEdges->nodes = theNodes;
+   ErrorScan(fscanf(file, "Number of edges %d \n", &theEdges->nElem));
+   theEdges->elem = malloc(sizeof(int)*theEdges->nLocalNode*theEdges->nElem);
+   for(int i=0; i < theEdges->nElem; ++i) {
+        elem = theEdges->elem;
+        ErrorScan(fscanf(file, "%6d : %6d %6d \n", &trash,&elem[2*i],&elem[2*i+1])); }
+  
+   femMesh *theElements = malloc(sizeof(femMesh));
+   theGeometry.theElements = theElements;
+   theElements->nLocalNode = 0;
+   theElements->nodes = theNodes;
+   char elementType[MAXNAME];  
+   ErrorScan(fscanf(file, "Number of %s %d \n",elementType,&theElements->nElem));  
+   if (strncasecmp(elementType,"triangles",MAXNAME) == 0) {
+      theElements->nLocalNode = 3;
+      theElements->elem = malloc(sizeof(int)*theElements->nLocalNode*theElements->nElem);
+      for(int i=0; i < theElements->nElem; ++i) {
+          elem = theElements->elem;
+          ErrorScan(fscanf(file, "%6d : %6d %6d %6d \n", 
+                    &trash,&elem[3*i],&elem[3*i+1],&elem[3*i+2])); }}
+   if (strncasecmp(elementType,"quads",MAXNAME) == 0) {
+      theElements->nLocalNode = 4;
+      theElements->elem = malloc(sizeof(int)*theElements->nLocalNode*theElements->nElem);
+      for(int i=0; i < theElements->nElem; ++i) {
+          elem = theElements->elem;
+          ErrorScan(fscanf(file, "%6d : %6d %6d %6d %6d \n", 
+                    &trash,&elem[4*i],&elem[4*i+1],&elem[4*i+2],&elem[4*i+3])); }}
+           
+   ErrorScan(fscanf(file, "Number of domains %d\n", &theGeometry.nDomains));
+   int nDomains = theGeometry.nDomains;
+   theGeometry.theDomains = malloc(sizeof(femDomain*)*nDomains);
+   for (int iDomain = 0; iDomain < nDomains; iDomain++) {
+      femDomain *theDomain = malloc(sizeof(femDomain)); 
+      theGeometry.theDomains[iDomain] = theDomain;
+      theDomain->mesh = theEdges; 
+      ErrorScan(fscanf(file,"  Domain : %6d \n", &trash));
+      ErrorScan(fscanf(file,"  Name : %[^\n]s \n", (char*)&theDomain->name));
+      ErrorScan(fscanf(file,"  Number of elements : %6d\n", &theDomain->nElem));
+      theDomain->elem = malloc(sizeof(int)*2*theDomain->nElem); 
+      for (int i=0; i < theDomain->nElem; i++){
+          ErrorScan(fscanf(file,"%6d",&theDomain->elem[i]));
+          if ((i+1) != theDomain->nElem  && (i+1) % 10 == 0) ErrorScan(fscanf(file,"\n")); }}
+    
+   fclose(file);
+}
+
+void geoSetDomainName(int iDomain, char *name) 
+{
+    if (iDomain >= theGeometry.nDomains)  Error("Illegal domain number");
+    if (geoGetDomain(name) != -1)         Error("Cannot use the same name for two domains");
+    sprintf(theGeometry.theDomains[iDomain]->name,"%s",name);
 } 
 
+int geoGetDomain(char *name)
+{
+    int theIndex = -1;
+    int nDomains = theGeometry.nDomains;
+    for (int iDomain = 0; iDomain < nDomains; iDomain++) {
+        femDomain *theDomain = theGeometry.theDomains[iDomain];
+        if (strncasecmp(name,theDomain->name,MAXNAME) == 0)
+            theIndex = iDomain;  }
+    return theIndex;
+            
+}
 
+double geoSize(double x, double y)
+{
+    femGeo *theGeometry = geoGetGeometry();
+
+    double h = theGeometry->h;
+
+    double x0 = theGeometry->x_hole1 + 0.5 * theGeometry->w_hole1;  // center X
+    double y0 = theGeometry->y_hole1 + 0.5 * theGeometry->h_hole1;  // center Y
+    double halfW0 = 0.5 * theGeometry->w_hole1;
+    double halfH0 = 0.5 * theGeometry->h_hole1;
+    double d0 = 0.5;      // transition zone for hole 1
+    double h0 = 0.01;    // refined mesh size near hole 1
+
+    double x1 = theGeometry->x_hole2 + 0.5 * theGeometry->w_hole2;  // center X
+    double y1 = theGeometry->y_hole2 + 0.5 * theGeometry->h_hole2;  // center Y
+    double halfW1 = 0.5 * theGeometry->w_hole2;
+    double halfH1 = 0.5 * theGeometry->h_hole2;
+    double d1 = 0.5;      // transition zone for hole 2
+    double h1 = 0.01;     // refined mesh size near hole 2
+
+    // Default mesh size
+    double result = h;
+
+    double dx0 = fabs(x - x0) - halfW0;
+    double dy0 = fabs(y - y0) - halfH0;
+    if (dx0 < 0.0) dx0 = 0.0;
+    if (dy0 < 0.0) dy0 = 0.0;
+    double dist0 = sqrt(dx0 * dx0 + dy0 * dy0);
+
+    double dx1 = fabs(x - x1) - halfW1;
+    double dy1 = fabs(y - y1) - halfH1;
+    if (dx1 < 0.0) dx1 = 0.0;
+    if (dy1 < 0.0) dy1 = 0.0;
+    double dist1 = sqrt(dx1 * dx1 + dy1 * dy1);
+
+    if (dist0 <= d0) {
+        double a2 = (3.0 * (h - h0)) / (d0 * d0);
+        double a3 = (2.0 * (h0 - h)) / (d0 * d0 * d0);
+        double val0 = h0 + a2 * (dist0 * dist0) + a3 * (dist0 * dist0 * dist0);
+        result = val0 < result ? val0 : result;
+    }
+
+    if (dist1 <= d1) {
+        double a2 = (3.0 * (h - h1)) / (d1 * d1);
+        double a3 = (2.0 * (h1 - h)) / (d1 * d1 * d1);
+        double val1 = h1 + a2 * (dist1 * dist1) + a3 * (dist1 * dist1 * dist1);
+        result = val1 < result ? val1 : result;
+    }
+
+    return result;
+}
+
+
+
+void geoMeshGenerate() {
+  femGeo *theGeometry = geoGetGeometry();
+
+
+  geoSetSizeCallback(geoSize);
+
+
+  int ierr;
+
+    int idRect = gmshModelOccAddRectangle(theGeometry->x_plate, theGeometry->y_plate, 0.0, theGeometry->w_plate, theGeometry->h_plate, -1, 0.1, &ierr);
+
+    int idHoleDown = gmshModelOccAddRectangle(theGeometry->x_hole1, theGeometry->y_hole1, 0.0, theGeometry->w_hole1, theGeometry->h_hole1, -1, 0.1, &ierr);
+
+    int idHoleUp = gmshModelOccAddRectangle(theGeometry->x_hole2, theGeometry->y_hole2, 0.0, theGeometry->w_hole2, theGeometry->h_hole2, -1, 0.1, &ierr);
+
+
+  int rect[] = {2, idRect};
+  int holeDown[] = {2, idHoleDown};
+  int holeUp[] = {2, idHoleUp};
+  gmshModelOccCut(rect, 2, holeDown, 2, NULL, NULL, NULL, NULL, NULL, -1, 1, 1, &ierr); 
+  ErrorGmsh(ierr);
+  gmshModelOccCut(rect, 2, holeUp, 2, NULL, NULL, NULL, NULL, NULL, -1, 1, 1, &ierr); 
+  ErrorGmsh(ierr);
+  gmshModelOccSynchronize(&ierr);
+ 
+//
+//  -2- D�finition de la fonction callback pour la taille de r�f�rence
+//      Synchronisation de OpenCascade avec gmsh
+//      G�n�ration du maillage (avec l'option Mesh.SaveAll :-)
+                  
+   
+    geoSetSizeCallback(geoSize);
+                                  
+    gmshModelOccSynchronize(&ierr);       
+//    gmshOptionSetNumber("Mesh.SaveAll", 1, &ierr);
+//    gmshModelMeshGenerate(2, &ierr);  
+       
+//
+//  Generation de quads :-)
+//
+    gmshOptionSetNumber("Mesh.SaveAll", 1, &ierr);
+    gmshOptionSetNumber("Mesh.RecombineAll", 1, &ierr);
+    gmshOptionSetNumber("Mesh.Algorithm", 8, &ierr);  //chk(ierr);
+    gmshOptionSetNumber("Mesh.RecombinationAlgorithm", 1.0, &ierr);  //chk(ierr);
+    gmshModelGeoMeshSetRecombine(2,1,45,&ierr);  //chk(ierr);
+    gmshModelMeshGenerate(2, &ierr);  
+   
+ 
+//
+//  Plot of Fltk
+//
+   gmshFltkInitialize(&ierr);
+   gmshFltkRun(&ierr);  //chk(ierr);
+//
+    
+}
 
 double femMin(double *x, int n) 
 {
@@ -246,6 +467,8 @@ double femMax(double *x, int n)
         myMax = fmax(myMax,x[i]);
     return myMax;
 }
+
+
 
 void femError(char *text, int line, char *file)                                  
 { 

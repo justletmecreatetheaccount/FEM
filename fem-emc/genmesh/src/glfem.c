@@ -191,7 +191,6 @@ void glfemDrawMessage(int h, int v, char *s)
     glPopAttrib ();
 }
 
-
 void getColor(double value, int numberOfColors, float* r, float* g, float* b)
 {
     if (value > 1) value = 1;
@@ -214,7 +213,6 @@ double glScale(double minimum, double maximum, double value)
     return (value - minimum) / fabs(maximum - minimum);
 }
 
-
 static int GLFEM_ACTION = 0;
 
 int glfemGetAction(void) 
@@ -228,13 +226,9 @@ int glfemGetAction(void)
     return GLFEM_ACTION;
 }
 
-
-
 static void glfemKeyCallback(GLFWwindow* self,
               int key, int scancode, int action,int mods) 
-{
-    
-    
+{    
     if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS) {
         GLFEM_ACTION = 1;   }
     if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
@@ -278,10 +272,6 @@ void glfemDrawElement(float *x, float *y, int n)
     glEnd();
 
 }
-
-
-
-
 
 void glfemReshapeWindows(femNodes *theNodes, int w, int h)
 {
@@ -360,7 +350,8 @@ void glfemPlotMesh(femMesh *theMesh)
         glfemDrawElement(xLoc,yLoc,nLocalNode); }
 }
 
-void glfemPlotDomain(femDomain *theDomain){
+void glfemPlotDomain(femDomain *theDomain)
+{
     int i,j,*nodes;
     femMesh *theMesh = theDomain->mesh;
     int nLocalNode = theMesh->nLocalNode;
@@ -376,17 +367,12 @@ void glfemPlotDomain(femDomain *theDomain){
     for(int i=0; i < theDomain->nElem; ++i){
         int iel = theDomain->elem[i];
         nodes = &(theMesh->elem[iel*nLocalNode]);
-        
         for (j=0; j < nLocalNode; ++j) {
             xLoc[j] = theMesh->nodes->X[nodes[j]];
             yLoc[j] = theMesh->nodes->Y[nodes[j]]; }
-        glfemDrawElement(xLoc,yLoc,nLocalNode);
-        
-         }
-         glLineWidth(1);
+        glfemDrawElement(xLoc,yLoc,nLocalNode);}
+    glLineWidth(1);
 }
-
-
 
 void glfemMessage(char *message)
 {

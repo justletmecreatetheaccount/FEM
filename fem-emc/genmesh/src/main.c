@@ -13,12 +13,11 @@
 
 
 int main(int argc, char *argv[])
-{   char tri;
+{   char tri= '0';
     char plot;
     if (argc < 2)
     {
         printf("\033[34m[INFO]You can to specifiy more arguments when creating the mesh, the first should 1 or 0 to create triangles or quads and the second 1 or 0 to plot it or not\033[0m\n");
-        tri = 0;
     } else {
         tri = *argv[1];
         if (argc == 3){

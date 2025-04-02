@@ -74,7 +74,10 @@ int main(void)
     printf(" ==== Maximum h          : %14.7e \n",hMax);
  
     
- 
+
+    free(meshSizeField);  
+    geoFinalize();
+    glfwTerminate(); 
  
     
     exit(EXIT_SUCCESS);

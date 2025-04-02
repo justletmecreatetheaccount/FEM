@@ -5,11 +5,11 @@
 #include <math.h>
 
 #ifndef WARMUP
-#define WARMUP 1
+#define WARMUP 0
 #endif
 
 #ifndef NRUNS
-#define NRUNS 5
+#define NRUNS 1
 #endif
 
 int main(int argc, char** argv){
@@ -35,7 +35,7 @@ int main(int argc, char** argv){
     for (int i = 0; i < WARMUP; i++){
         elasticity_solve(meshfile, outfile, E, nu, rho, g);
     }
-    printf("Warmup runs done, now benchmarking\n");
+    //printf("Warmup runs done, now benchmarking\n");
 
     // =========  GO ! =============
     for (int i = 0; i < NRUNS; i++){
@@ -54,20 +54,17 @@ int main(int argc, char** argv){
         tsum2 += times[i] * times[i];
     }
     double tmean = tsum / NRUNS;
-    double tvar = (tsum2 - NRUNS*tmean*tmean) / (NRUNS-1);
-    double tstd = sqrt(tvar);
+
 
     char prefix[2] = {0};
     if (tmean < 1e-3){
         prefix[0] = 'u';
         tmean *= 1e6;
-        tstd *= 1e6;
     } else if (tmean < 1.0){
         prefix[0] = 'm';
         tmean *= 1e3;
-        tstd *= 1e3;
     }
-    printf("Your code runs in %.4f ± %.4f %ss for mesh file '%s'\n", tmean, tstd, prefix, meshfile);
+    printf("Your code runs in %.4f %ss for mesh file '%s'\n", tmean, prefix, meshfile);
 
     free(times);
     return 0;

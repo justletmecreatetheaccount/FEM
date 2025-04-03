@@ -10,12 +10,12 @@
 
 
 int main(int argc, char** argv){
-
+    // parsing args
     char* meshfile = "../data/mesh.txt";
     char* outfile  = "../data/UV.txt";
     if (argc > 1) meshfile = argv[1];
     if (argc > 2) outfile  = argv[2];
-
+    // small benchmark
     struct timespec t0, t1;
     timespec_get(&t0, TIME_UTC);
     Plot plot = elasticity_solve(meshfile, outfile);
@@ -23,12 +23,13 @@ int main(int argc, char** argv){
     double exec_time = (t1.tv_sec - t0.tv_sec)*1.0 + (t1.tv_nsec - t0.tv_nsec)*1e-9;
     printf("\033[34m[INFO]Your code runs in %.4fs for mesh file '%s'\033[0m\n",exec_time, meshfile);
     
-    
+    // extracting arrays for the plot
     femProblem* theProblem = plot.theProblem;
     femGeo* theGeometry = plot.theGeometry;
     double* theSoluce = plot.theSoluce;
     double* theForces = plot.theForces;
 
+    // plot
     femNodes *theNodes = theGeometry->theNodes;
     double maxDeformation = 1e5;
     double deformationFactor = 0.0;
@@ -46,7 +47,7 @@ int main(int argc, char** argv){
     char theMessage[MAXNAME];
 
  
-    GLFWwindow* window = glfemInit("EPL1110 : Recovering forces on constrained nodes");
+    GLFWwindow* window = glfemInit("Solution Gr 29");
     glfwMakeContextCurrent(window);
 
     do {

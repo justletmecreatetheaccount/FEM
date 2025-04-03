@@ -66,11 +66,6 @@ void geoFinalize()
     ErrorGmsh(ierr);
 }
 
-void geoSetSizeCallback(double (*geoSize)(double x, double y))
-{
-    theGeometry.geoSize = geoSize;
-}
-
 void geoMeshImport()
 {
     int ierr;
@@ -97,8 +92,6 @@ void geoMeshImport()
     gmshFree(trash);
 
 
-    /* Importing elements */
-    /* Pas super joli : a ameliorer pour eviter la triple copie */
 
     size_t nElem, *elem;
     gmshModelMeshGetElementsByType(1, &elem, &nElem,
@@ -193,69 +186,6 @@ void geoMeshImport()
 
     return;
 }
-
-void geoMeshPrint()
-{
-    femNodes *theNodes = theGeometry.theNodes;
-    if (theNodes != NULL)
-    {
-        printf("Number of nodes %d \n", theNodes->nNodes);
-        for (int i = 0; i < theNodes->nNodes; i++)
-        {
-            printf("%6d : %14.7e %14.7e \n", i, theNodes->X[i], theNodes->Y[i]);
-        }
-    }
-    femMesh *theEdges = theGeometry.theEdges;
-    if (theEdges != NULL)
-    {
-        printf("Number of edges %d \n", theEdges->nElem);
-        int *elem = theEdges->elem;
-        for (int i = 0; i < theEdges->nElem; i++)
-        {
-            printf("%6d : %6d %6d \n", i, elem[2 * i], elem[2 * i + 1]);
-        }
-    }
-    femMesh *theElements = theGeometry.theElements;
-    if (theElements != NULL)
-    {
-        if (theElements->nLocalNode == 3)
-        {
-            printf("Number of triangles %d \n", theElements->nElem);
-            int *elem = theElements->elem;
-            for (int i = 0; i < theElements->nElem; i++)
-            {
-                printf("%6d : %6d %6d %6d\n", i, elem[3 * i], elem[3 * i + 1], elem[3 * i + 2]);
-            }
-        }
-        if (theElements->nLocalNode == 4)
-        {
-            printf("Number of quads %d \n", theElements->nElem);
-            int *elem = theElements->elem;
-            for (int i = 0; i < theElements->nElem; i++)
-            {
-                printf("%6d : %6d %6d %6d %6d\n", i, elem[4 * i], elem[4 * i + 1], elem[4 * i + 2], elem[4 * i + 3]);
-            }
-        }
-    }
-    int nDomains = theGeometry.nDomains;
-    printf("Number of domains %d\n", nDomains);
-    for (int iDomain = 0; iDomain < nDomains; iDomain++)
-    {
-        femDomain *theDomain = theGeometry.theDomains[iDomain];
-        printf("  Domain : %6d \n", iDomain);
-        printf("  Name : %s\n", theDomain->name);
-        printf("  Number of elements : %6d\n", theDomain->nElem);
-        for (int i = 0; i < theDomain->nElem; i++)
-        {
-            //         if (i != theDomain->nElem  && (i % 10) != 0)  printf(" - ");
-            printf("%6d", theDomain->elem[i]);
-            if ((i + 1) != theDomain->nElem && (i + 1) % 10 == 0)
-                printf("\n");
-        }
-        printf("\n");
-    }
-}
-
 void geoMeshWrite(const char *filename)
 {
     FILE *file = fopen(filename, "w");
@@ -315,85 +245,6 @@ void geoMeshWrite(const char *filename)
     fclose(file);
 }
 
-void geoMeshRead(const char *filename)
-{
-    FILE *file = fopen(filename, "r");
-
-    int trash, *elem;
-
-    femNodes *theNodes = malloc(sizeof(femNodes));
-    theGeometry.theNodes = theNodes;
-    ErrorScan(fscanf(file, "Number of nodes %d \n", &theNodes->nNodes));
-    theNodes->X = malloc(sizeof(double) * (theNodes->nNodes));
-    theNodes->Y = malloc(sizeof(double) * (theNodes->nNodes));
-    for (int i = 0; i < theNodes->nNodes; i++)
-    {
-        ErrorScan(fscanf(file, "%d : %le %le \n", &trash, &theNodes->X[i], &theNodes->Y[i]));
-    }
-
-    femMesh *theEdges = malloc(sizeof(femMesh));
-    theGeometry.theEdges = theEdges;
-    theEdges->nLocalNode = 2;
-    theEdges->nodes = theNodes;
-    ErrorScan(fscanf(file, "Number of edges %d \n", &theEdges->nElem));
-    theEdges->elem = malloc(sizeof(int) * theEdges->nLocalNode * theEdges->nElem);
-    for (int i = 0; i < theEdges->nElem; ++i)
-    {
-        elem = theEdges->elem;
-        ErrorScan(fscanf(file, "%6d : %6d %6d \n", &trash, &elem[2 * i], &elem[2 * i + 1]));
-    }
-
-    femMesh *theElements = malloc(sizeof(femMesh));
-    theGeometry.theElements = theElements;
-    theElements->nLocalNode = 0;
-    theElements->nodes = theNodes;
-    char elementType[MAXNAME];
-    ErrorScan(fscanf(file, "Number of %s %d \n", elementType, &theElements->nElem));
-    if (strncasecmp(elementType, "triangles", MAXNAME) == 0)
-    {
-        theElements->nLocalNode = 3;
-        theElements->elem = malloc(sizeof(int) * theElements->nLocalNode * theElements->nElem);
-        for (int i = 0; i < theElements->nElem; ++i)
-        {
-            elem = theElements->elem;
-            ErrorScan(fscanf(file, "%6d : %6d %6d %6d \n",
-                             &trash, &elem[3 * i], &elem[3 * i + 1], &elem[3 * i + 2]));
-        }
-    }
-    if (strncasecmp(elementType, "quads", MAXNAME) == 0)
-    {
-        theElements->nLocalNode = 4;
-        theElements->elem = malloc(sizeof(int) * theElements->nLocalNode * theElements->nElem);
-        for (int i = 0; i < theElements->nElem; ++i)
-        {
-            elem = theElements->elem;
-            ErrorScan(fscanf(file, "%6d : %6d %6d %6d %6d \n",
-                             &trash, &elem[4 * i], &elem[4 * i + 1], &elem[4 * i + 2], &elem[4 * i + 3]));
-        }
-    }
-
-    ErrorScan(fscanf(file, "Number of domains %d\n", &theGeometry.nDomains));
-    int nDomains = theGeometry.nDomains;
-    theGeometry.theDomains = malloc(sizeof(femDomain *) * nDomains);
-    for (int iDomain = 0; iDomain < nDomains; iDomain++)
-    {
-        femDomain *theDomain = malloc(sizeof(femDomain));
-        theGeometry.theDomains[iDomain] = theDomain;
-        theDomain->mesh = theEdges;
-        ErrorScan(fscanf(file, "  Domain : %6d \n", &trash));
-        ErrorScan(fscanf(file, "  Name : %[^\n]s \n", (char *)&theDomain->name));
-        ErrorScan(fscanf(file, "  Number of elements : %6d\n", &theDomain->nElem));
-        theDomain->elem = malloc(sizeof(int) * 2 * theDomain->nElem);
-        for (int i = 0; i < theDomain->nElem; i++)
-        {
-            ErrorScan(fscanf(file, "%6d", &theDomain->elem[i]));
-            if ((i + 1) != theDomain->nElem && (i + 1) % 10 == 0)
-                ErrorScan(fscanf(file, "\n"));
-        }
-    }
-
-    fclose(file);
-}
 
 void geoSetDomainName(int iDomain, char *name)
 {
@@ -423,7 +274,6 @@ double geoSize(double x, double y)
 
     double h = theGeometry->h;
 
-    // Hole 1 parameters
     double x0 = theGeometry->x_hole1 + 0.5 * theGeometry->w_hole1; // center X
     double y0 = theGeometry->y_hole1 + 0.5 * theGeometry->h_hole1; // center Y
     double halfW0 = 0.5 * theGeometry->w_hole1;
@@ -431,7 +281,6 @@ double geoSize(double x, double y)
     double d0 = theGeometry->d;
     double h0 = theGeometry->s;
 
-    // Hole 2 parameters
     double x1 = theGeometry->x_hole2 + 0.5 * theGeometry->w_hole2; // center X
     double y1 = theGeometry->y_hole2 + 0.5 * theGeometry->h_hole2; // center Y
     double halfW1 = 0.5 * theGeometry->w_hole2;
@@ -439,7 +288,6 @@ double geoSize(double x, double y)
     double d1 = theGeometry->d;
     double h1 = theGeometry->s;
 
-    // Hole 3 parameters
     double x2 = theGeometry->x_hole3 + 0.5 * theGeometry->w_hole3; // center X
     double y2 = theGeometry->y_hole3 + 0.5 * theGeometry->h_hole3; // center Y
     double halfW2 = 0.5 * theGeometry->w_hole3;
@@ -449,28 +297,24 @@ double geoSize(double x, double y)
 
     double result = h;
 
-    // Distance to hole 1
     double dx0 = fabs(x - x0) - halfW0;
     double dy0 = fabs(y - y0) - halfH0;
     if (dx0 < 0.0) dx0 = 0.0;
     if (dy0 < 0.0) dy0 = 0.0;
     double dist0 = sqrt(dx0 * dx0 + dy0 * dy0);
 
-    // Distance to hole 2
     double dx1 = fabs(x - x1) - halfW1;
     double dy1 = fabs(y - y1) - halfH1;
     if (dx1 < 0.0) dx1 = 0.0;
     if (dy1 < 0.0) dy1 = 0.0;
-    double dist1 = sqrt(dx1 * dx1 + dy1 * dy1);
 
-    // Distance to hole 3
+    double dist1 = sqrt(dx1 * dx1 + dy1 * dy1);
     double dx2 = fabs(x - x2) - halfW2;
     double dy2 = fabs(y - y2) - halfH2;
     if (dx2 < 0.0) dx2 = 0.0;
     if (dy2 < 0.0) dy2 = 0.0;
     double dist2 = sqrt(dx2 * dx2 + dy2 * dy2);
 
-    // Adjust mesh size near hole 1
     if (dist0 <= d0)
     {
         double a2 = (3.0 * (h - h0)) / (d0 * d0);
@@ -479,7 +323,6 @@ double geoSize(double x, double y)
         result = val0 < result ? val0 : result;
     }
 
-    // Adjust mesh size near hole 2
     if (dist1 <= d1)
     {
         double a2 = (3.0 * (h - h1)) / (d1 * d1);
@@ -488,7 +331,6 @@ double geoSize(double x, double y)
         result = val1 < result ? val1 : result;
     }
 
-    // Adjust mesh size near hole 3
     if (dist2 <= d2)
     {
         double a2 = (3.0 * (h - h2)) / (d2 * d2);
@@ -505,16 +347,13 @@ double geoSize(double x, double y)
 void geoMeshGenerate()
 {
     femGeo *theGeometry = geoGetGeometry();
-    geoSetSizeCallback(geoSize);
+    theGeometry->geoSize = geoSize;
 
     int ierr;
 
-    int idRect = gmshModelOccAddRectangle(theGeometry->x_plate, theGeometry->y_plate, 0.0, theGeometry->w_plate, theGeometry->h_plate, -1, 0.1, &ierr);
-
+    int idRect = gmshModelOccAddRectangle(theGeometry->x_plate, theGeometry->y_plate, 0.0, theGeometry->w_plate, theGeometry->h_plate, -1, 0.0, &ierr);
     int idHoleDown = gmshModelOccAddRectangle(theGeometry->x_hole1, theGeometry->y_hole1, 0.0, theGeometry->w_hole1, theGeometry->h_hole1, -1, 0.1, &ierr);
     int idHoleUp = gmshModelOccAddRectangle(theGeometry->x_hole2, theGeometry->y_hole2, 0.0, theGeometry->w_hole2, theGeometry->h_hole2, -1, 0.1, &ierr);
-
-    // Third hole
     int idHoleThird = gmshModelOccAddRectangle(theGeometry->x_hole3, theGeometry->y_hole3, 0.0,
                                                theGeometry->w_hole3, theGeometry->h_hole3,
                                                -1, 0.1, &ierr);
@@ -530,9 +369,6 @@ void geoMeshGenerate()
     ErrorGmsh(ierr);
     gmshModelOccCut(rect, 2, holeThird, 2, NULL, NULL, NULL, NULL, NULL, -1, 1, 1, &ierr);
     ErrorGmsh(ierr);
-
-    gmshModelOccSynchronize(&ierr);
-    geoSetSizeCallback(geoSize);
 
     gmshModelOccSynchronize(&ierr);
 

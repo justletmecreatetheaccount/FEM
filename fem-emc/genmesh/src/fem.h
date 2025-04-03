@@ -27,8 +27,6 @@
 #define MAXNAME 256
 
 typedef enum {FEM_TRIANGLE,FEM_QUAD,FEM_EDGE} femElementType;
-typedef enum {DIRICHLET_X,DIRICHLET_Y,NEUMANN_X,NEUMANN_Y} femBoundaryType;
-typedef enum {PLANAR_STRESS,PLANAR_STRAIN,AXISYM} femElasticCase;
 
 
 typedef struct {
@@ -66,61 +64,12 @@ typedef struct {
     femDomain **theDomains;
 } femGeo;
 
-typedef struct {
-    int n;
-    femElementType type;
-    void (*x2)(double *xsi, double *eta);
-    void (*phi2)(double xsi, double eta, double *phi);
-    void (*dphi2dx)(double xsi, double eta, double *dphidxsi, double *dphideta);
-    void (*x)(double *xsi);
-    void (*phi)(double xsi, double *phi);
-    void (*dphidx)(double xsi, double *dphidxsi);
-} femDiscrete;
-    
-typedef struct {
-    int n;
-    const double *xsi;
-    const double *eta;
-    const double *weight;
-} femIntegration;
-
-typedef struct {
-    double *B;
-    double **A;
-    int size;
-} femFullSystem;
-
-
-typedef struct {
-    femDomain* domain;
-    femBoundaryType type; 
-    double value;
-} femBoundaryCondition;
-
-
-typedef struct {
-    double E,nu,rho,g;
-    double A,B,C;
-    int planarStrainStress;
-    int nBoundaryConditions;
-    femBoundaryCondition **conditions;  
-    int *constrainedNodes; 
-    double *soluce;
-    double *residuals;
-    femGeo *geometry;
-    femDiscrete *space;
-    femIntegration *rule;
-    femDiscrete *spaceEdge;
-    femIntegration *ruleEdge;
-    femFullSystem *system;
-} femProblem;
 
 
 void                geoInitialize();
 femGeo*             geoGetGeometry();
 double              geoSize(double x, double y);
 double              geoSizeDefault(double x, double y);
-void                geoSetSizeCallback(double (*geoSize)(double x, double y));
 void                geoMeshGenerate();
 void                geoMeshImport();
 void                geoMeshPrint();
@@ -130,45 +79,8 @@ void                geoSetDomainName(int iDomain, char *name);
 int                 geoGetDomain(char *name);
 void                geoFinalize();
 
-femProblem*         femElasticityCreate(femGeo* theGeometry, 
-                                      double E, double nu, double rho, double g, femElasticCase iCase);
-void                femElasticityFree(femProblem *theProblem);
-void                femElasticityPrint(femProblem *theProblem);
-void                femElasticityAddBoundaryCondition(femProblem *theProblem, char *nameDomain, femBoundaryType type, double value);
-void                femElasticityAssembleElements(femProblem *theProblem);
-void                femElasticityAssembleNeumann(femProblem *theProblem);
-double*             femElasticitySolve(femProblem *theProblem);
-double*             femElasticityForces(femProblem *theProblem);
-double              femElasticityIntegrate(femProblem *theProblem, double (*f)(double x, double y));
-
-
-femIntegration*     femIntegrationCreate(int n, femElementType type);
-void                femIntegrationFree(femIntegration *theRule);
-
-femDiscrete*        femDiscreteCreate(int n, femElementType type);
-void                femDiscreteFree(femDiscrete* mySpace);
-void                femDiscretePrint(femDiscrete* mySpace);
-void                femDiscreteXsi2(femDiscrete* mySpace, double *xsi, double *eta);
-void                femDiscretePhi2(femDiscrete* mySpace, double xsi, double eta, double *phi);
-void                femDiscreteDphi2(femDiscrete* mySpace, double xsi, double eta, double *dphidxsi, double *dphideta);
-void                femDiscreteXsi(femDiscrete* mySpace, double *xsi);
-void                femDiscretePhi(femDiscrete* mySpace, double xsi, double *phi);
-void                femDiscreteDphi(femDiscrete* mySpace, double xsi, double *dphidxsi);
-
-femFullSystem*      femFullSystemCreate(int size);
-void                femFullSystemFree(femFullSystem* mySystem);
-void                femFullSystemPrint(femFullSystem* mySystem);
-void                femFullSystemInit(femFullSystem* mySystem);
-void                femFullSystemAlloc(femFullSystem* mySystem, int size);
-double*             femFullSystemEliminate(femFullSystem* mySystem);
-void                femFullSystemConstrain(femFullSystem* mySystem, int myNode, double value);
-
 double              femMin(double *x, int n);
 double              femMax(double *x, int n);
 void                femError(char *text, int line, char *file);
-void                femErrorScan(int test, int line, char *file);
 void                femErrorGmsh(int test, int line, char *file);
-void                femWarning(char *text, int line, char *file);
-
-
 #endif

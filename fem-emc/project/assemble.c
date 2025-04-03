@@ -180,7 +180,9 @@ double *femElasticitySolve(femProblem *theProblem) {
 
   femFullSystemEliminate(theSystem);
   // femConjugateGradientCholesky(theSystem);
-
+  // femConjugateGradientCholesky(theSystem);
+  // femConjugateGradientCholesky(theSystem);
+  //
   for (int i = 0; i < theSystem->size; i++) {
     theProblem->soluce[i] = theSystem->B[i];
   }

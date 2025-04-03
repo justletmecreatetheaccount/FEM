@@ -1,0 +1,9 @@
+data/mesh.txt
+data/UV.txt
+genmesh/data/mesh.txt
+
+
+build/
+genmesh/build/
+
+

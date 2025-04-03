@@ -18,9 +18,9 @@ Plot elasticity_solve(const char *meshfile, const char *outfile)
   } else {
 
     // Boundary conditions are Dirichlet X and Y
-    femElasticityAddBoundaryCondition(theProblem, "Plate left", DIRICHLET_X, 1e-6);
+    femElasticityAddBoundaryCondition(theProblem, "Plate left", DIRICHLET_X, _DISPLACEMENT);
     femElasticityAddBoundaryCondition(theProblem, "Plate right", DIRICHLET_X,
-                                      -1e-6);
+                                      -_DISPLACEMENT);
     femElasticityAddBoundaryCondition(theProblem, "Plate bottom", DIRICHLET_Y,
                                       0.0);
     femElasticityAddBoundaryCondition(theProblem, "Plate bottom", DIRICHLET_X, 0.0);
@@ -31,7 +31,7 @@ Plot elasticity_solve(const char *meshfile, const char *outfile)
     double *theSoluce = femElasticitySolve(theProblem);
     double *theForces = femElasticityForces(theProblem);
     Plot res = {theProblem, theGeometry, theForces, theSoluce};
-    // Write out the solution
+
     int nNodes = theGeometry->theNodes->nNodes;
     femSolutionWrite(nNodes, 2, theSoluce, outfile);
     return res;

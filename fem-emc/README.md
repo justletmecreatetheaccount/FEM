@@ -39,8 +39,8 @@ pip install numpy
 Ci dessous la structure du projet pour un programme qui à déjà tourner et avec donc les fichiers de build et mesh
 ```
 .
-├── benchmark.c                 <- benchmark program
-├── benchmark.h
+├── main.c                      <- the main program
+├── main.h
 ├── build                       <- build folder (to create)
 ├── CMakeLists.txt              <- main cmake configuration
 ├── data                        <- meshes folder
@@ -94,7 +94,21 @@ et enfin, on peut faire tourner l'exécutable avec
 ```
 ./genmesh
 ```
-L'exécutable peut également prendre deux paramètres en entrée (des 0 ou 1) qui nous disent si l'exécutable dois utiliser des quads ou non (0 pour quad 1 pour triangle), le programme choisis les quads par défaut, exemple : `./genmesh 1` pour des triangles. Le deuxième paramètre est relatif au plot, pour visualiser ou non le champ de la taille des éléments (0 pour ne pas ouvrir de fenêtre et 1 pour en ouvrir une) autre exemple : `./genmesh 0 1` pour ouvrir une fenetre avec des quads
+L'exécutable peut également prendre deux paramètres en entrée (`quad`/`tri` et `plot`) qui nous disent si l'exécutable dois utiliser des quads ou non, le programme choisis les quads par défaut, exemple : `./genmesh tri` pour des triangles. Par défaut les quads sont choisis.
+
+Le deuxième paramètre `plot` est pour visualiser ou non le champ de la taille des éléments par exemple : `./genmesh plot` pour ouvrir une fenetre avec des quads
+
+Par défaut pas de plot est fait et les quads sont choisis, si `quad` et `tri` sont passés en argument, le programme prend le dernier choisis, `./genmesh quad tri` ferra des triangles
 
 ### Résoudre le problème
 
+
+Les paramètres du problème sont définis dans `main.h` par
+```
+#define _DISPLACEMENT (3.0 * 10e-7)
+#define _E (211.0 * 10e9)
+#define _NU (0.3)
+#define _RHO (7.85 * 10e3)
+#define _G (9.81)
+```
+Ou `_DISPLACEMENT` est le deplacement par compression des bords du disque et les autres constantes associées sont les paramètres physiques

@@ -13,7 +13,7 @@ add_subdirectory(project)
 
 add_executable(
     solver
-    ./benchmark.c
+    ./main.c
 )
 
 find_library(m m)

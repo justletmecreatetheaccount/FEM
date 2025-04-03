@@ -8,8 +8,10 @@ void elasticity_solve(const char *meshfile, const char *outfile, double E, doubl
   femProblem *theProblem = femElasticityCreate(theGeometry, E, nu, rho, g, PLANAR_STRAIN);
 
   // Boundary conditions are Dirichlet X and Y
-  femElasticityAddBoundaryCondition(theProblem, "Plate left", DIRICHLET_X, 21e3);
-  femElasticityAddBoundaryCondition(theProblem, "Plate right", DIRICHLET_X, 21e3);    
+  femElasticityAddBoundaryCondition(theProblem, "Plate left", NEUMANN_X, 1e5);
+  femElasticityAddBoundaryCondition(theProblem, "Plate right", NEUMANN_X, -1e5);   
+  femElasticityAddBoundaryCondition(theProblem, "Plate bottom", DIRICHLET_X, 0.0);    
+  femElasticityAddBoundaryCondition(theProblem, "Plate bottom", DIRICHLET_Y, 0.0);    
 
   // Assemble and solve
   // femElasticityPrint(theProblem);

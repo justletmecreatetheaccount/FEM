@@ -76,7 +76,12 @@ Ci dessous la structure du projet pour un programme qui à déjà tourner et ave
 
 ### Initialisation
 
-Pour initialiser le projet, il faut creér les dossier de build dans `./build/`et `./genmesh/build/`
+> ⚠️ **Attention**  
+
+Pour initialiser le projet, il faut créer les dossiers de build dans `./build/` et `./genmesh/build/`.
+
+Si vous êtes sur Linux, vous pouvez lancer `./_init.sh` (qui est l'équivalent) après avoir fait 
+`chmod +x _init.sh` (vous pouvez le faire pour tout les fichiers .sh)
 
 ## Lancer le programme
 
@@ -100,15 +105,48 @@ Le deuxième paramètre `plot` est pour visualiser ou non le champ de la taille 
 
 Par défaut pas de plot est fait et les quads sont choisis, si `quad` et `tri` sont passés en argument, le programme prend le dernier choisis, `./genmesh quad tri` ferra des triangles
 
+Si vous êtes sur Linux, vous pouvez lancer `./_mesh.sh` pour générer le maillage avec un plot du champ de taille des éléments ainsi que visualiser le maillage, c'est équivalent à utiliser les commandes ci-dessus
+
+
 ### Résoudre le problème
 
 
 Les paramètres du problème sont définis dans `main.h` par
 ```
-#define _DISPLACEMENT (3.0 * 10e-7)
-#define _E (211.0 * 10e9)
-#define _NU (0.3)
-#define _RHO (7.85 * 10e3)
+#define _DISPLACEMENT (2.0 * 10e-7)
+#define _E (170.0 * 10e9)
+#define _NU (0.29)
+#define _RHO (7.5 * 10e3)
 #define _G (9.81)
 ```
-Ou `_DISPLACEMENT` est le deplacement par compression des bords du disque et les autres constantes associées sont les paramètres physiques
+Ou `_DISPLACEMENT` est le deplacement par compression des bords du disque et les autres constantes associées sont les paramètres physiques trouver sur https://www.makeitfrom.com/material-properties/SAE-ASTM-Grade-G3500-F10007-Grey-Cast-Iron et https://en.wikipedia.org/wiki/Young%27s_modulus#Temperature_dependence
+
+On peut donc facilement les changer pour adapter l'analyse a un autre matériaux par exemple un acier froid comparé a un acier chaud.
+
+Pour résoudre le problème, et afficher les déformations subies, il faut naviguer dans `./build/`
+puis exécuter
+```
+cmake ..
+```
+suivis par 
+```
+make
+```
+et finalement
+```
+./solve
+```
+le binaire solve peut prendre comme argument le chemin du fichier d'entrée et de sortie (dans cet ordre)
+
+Si vous êtes sur Linux, vous pouvez lancer `./_run.sh` c'est équivalent à utiliser les commandes ci-dessus, cela va donc resoudre le probleme definis dans `solve.c` et faire une animation avec les déformations
+
+Concernant la fenêtre ouverte, elle permet aussi de visualiser d'autre chose en appuyant sur la touche correspondante
+
+| Touche appuyée     | Figure affichée                          |
+|----------------------|--------------------------------------|
+| `D`          | Permet d'iterer sur les domaines des frontières en appuyant sur `N`         |
+| `V`  | Vue par défaut du maillage générer      |
+| `X`           | Vue des forces sur les domaines frontières en X    |
+| `Y`   | Vue des forces sur les domaines frontières en Y       |
+
+En executant `./solve` un benchmark apparait dans les logs, c'est le temps utiliser pour resoudre le système

@@ -49,26 +49,25 @@ int main(int argc, char *argv[])
     theGeometry->elementType = FEM_QUAD;
 
     double w = 1.0;
-    double h = 3.0;
+    double h = 3.5;
 
-    // Plate dimensions
     theGeometry->w_plate = w;
     theGeometry->h_plate = h;
-    theGeometry->x_plate = 0.0;
-    theGeometry->y_plate = 0.0;
+    theGeometry->x_plate = -w/2.0;
+    theGeometry->y_plate = -0.5;
 
-    // Hole 1
-    theGeometry->x_hole1 = w / 4.0;
-    theGeometry->y_hole1 = 1.0 / 4.0;  // shifted in y by +1
+    h = 3.0;
+    theGeometry->x_hole1 = -w / 4.0;
+    theGeometry->y_hole1 = 1.0 / 4.0;
     theGeometry->w_hole1 = w / 2.0;
     theGeometry->h_hole1 = h / 6.0;
 
-    theGeometry->x_hole2 = w / 4.0;
+    theGeometry->x_hole2 = -w / 4.0;
     theGeometry->y_hole2 = 5.0 / 4.0;
     theGeometry->w_hole2 = w / 2.0;
     theGeometry->h_hole2 = h / 6.0;
 
-    theGeometry->x_hole3 = w / 4.0;
+    theGeometry->x_hole3 = -w / 4.0;
     theGeometry->y_hole3 = 9.0/4.0;
     theGeometry->w_hole3 = w / 2.0;
     theGeometry->h_hole3 = h / 6.0;

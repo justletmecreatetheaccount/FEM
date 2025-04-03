@@ -26,9 +26,9 @@ int main(int argc, char** argv){
 
     struct timespec t0, t1;
     double* const restrict times = malloc(sizeof(*times)*NRUNS);
-    double E   = 211.e9;
-    double nu  = 0.3;
-    double rho = 7.85e3; 
+    double E   = 170.e9; // https://www.makeitfrom.com/material-properties/SAE-ASTM-Grade-G3500-F10007-Grey-Cast-Iron and https://en.wikipedia.org/wiki/Young%27s_modulus#Temperature_dependence
+    double nu  = 0.29;
+    double rho = 7.5e3; 
     double g   = 9.81;
 
     // ====== READY, SET... ========

@@ -12,13 +12,13 @@ add_subdirectory(project)
 
 
 add_executable(
-    myFem
+    solver
     ./benchmark.c
 )
 
 find_library(m m)
 target_link_libraries(
-    myFem 
+    solver 
     PUBLIC femsolver 
 )
-target_link_libraries(myFem PUBLIC m)
+target_link_libraries(solver PUBLIC m)

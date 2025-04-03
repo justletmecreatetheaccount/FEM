@@ -34,14 +34,14 @@ int main(int argc, char *argv[])
     }
 
     if (tri)
-        printf("\033[34m[INFO]Using triangular elements\033[0m\n");
+        printf("\033[34m[INFO] Using triangular elements\033[0m\n");
     else
-        printf("\033[34m[INFO]Using quadrilateral elements\033[0m\n");
+        printf("\033[34m[INFO] Using quadrilateral elements\033[0m\n");
 
     if (plot)
-        printf("\033[34m[INFO]Plotting is enabled\033[0m\n");
+        printf("\033[34m[INFO] Plotting is enabled\033[0m\n");
     else
-        printf("\033[34m[INFO]Plotting is disabled\033[0m\n");
+        printf("\033[34m[INFO] Plotting is disabled\033[0m\n");
 
     
     geoInitialize();
@@ -113,9 +113,17 @@ int main(int argc, char *argv[])
     geoSetDomainName(21, "Holedown top-left");
     geoSetDomainName(22, "Holedown top-right");
     geoSetDomainName(23, "Holedown top");
+    geoSetDomainName(24, "Holemid bottom");
+    geoSetDomainName(25, "Holemid bottom-left");
+    geoSetDomainName(26, "Holemid bottom-right");
+    geoSetDomainName(27, "Holemid left");
+    geoSetDomainName(28, "Holemid right");
+    geoSetDomainName(29, "Holemid top-left");
+    geoSetDomainName(30, "Holemid top-right");
+    geoSetDomainName(31, "Holemid top");
 
 
-    geoMeshWrite("../data/mesh.txt");
+    geoMeshWrite("../../data/mesh.txt");
     
         
 

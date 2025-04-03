@@ -101,7 +101,7 @@ class Mesh:
         return self.__str__()
  
 if __name__ == "__main__":
-    mesh = Mesh("genmesh/data/mesh.txt")
+    mesh = Mesh("data/mesh.txt")
     print(mesh)
     mesh.unfuck()
     print("Mesh generated and fixed, merci Michel !")

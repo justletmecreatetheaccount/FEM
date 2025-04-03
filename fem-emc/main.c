@@ -3,10 +3,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include "project/fem.h"
+#include "genmesh/src/glfem.h"
 
-
-
-#define MAXNAME 256
 
 
 
@@ -21,13 +20,17 @@ int main(int argc, char** argv){
 
 
     timespec_get(&t0, TIME_UTC);
-    elasticity_solve(meshfile, outfile);
+    Plot plot = elasticity_solve(meshfile, outfile);
     timespec_get(&t1, TIME_UTC);
 
     // Do not print the value here to not incur IO overhead
     double exec_time = (t1.tv_sec - t0.tv_sec)*1.0 + (t1.tv_nsec - t0.tv_nsec)*1e-9;
     printf("\033[34m[INFO]Your code runs in %.4fs for mesh file '%s'\033[0m\n",exec_time, meshfile);
-    /*
+    femProblem* theProblem = plot.theProblem;
+    femGeo* theGeometry = plot.theGeometry;
+    double* theSoluce = plot.theSoluce;
+    double* theForces = plot.theForces;
+
     femNodes *theNodes = theGeometry->theNodes;
     double deformationFactor = 1e5;
     double *normDisplacement = malloc(theNodes->nNodes * sizeof(double));
@@ -68,7 +71,8 @@ int main(int argc, char** argv){
         if (mode == 0) {
             domain = domain % theGeometry->nDomains;
             glfemPlotDomain( theGeometry->theDomains[domain]); 
-            sprintf(theMessage, "%s : %d ",theGeometry->theDomains[domain]->name,domain);
+            snprintf(theMessage, sizeof(theMessage), "%.400s : %d",
+                    theGeometry->theDomains[domain]->name, domain);
             glColor3f(1.0,0.0,0.0); glfemMessage(theMessage); }
         if (mode == 1) {
             glfemPlotField(theGeometry->theElements,normDisplacement);
@@ -89,12 +93,10 @@ int main(int argc, char** argv){
          glfwPollEvents();
     } while( glfwGetKey(window,GLFW_KEY_ESCAPE) != GLFW_PRESS &&
              glfwWindowShouldClose(window) != 1 );
-            
-    // Check if the ESC key was pressed or the window was closed
-
     free(normDisplacement);
     free(forcesX);
     free(forcesY);
-*/
+    femElasticityFree(theProblem);
+    geoFinalize(theGeometry);
     return 0;
 }

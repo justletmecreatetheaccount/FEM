@@ -496,6 +496,9 @@ double geoSize(double x, double y)
         double val2 = h2 + a2 * (dist2 * dist2) + a3 * (dist2 * dist2 * dist2);
         result = val2 < result ? val2 : result;
     }
+    if (y < 0.0){
+        result = h0;
+    }
 
     return result;
 }

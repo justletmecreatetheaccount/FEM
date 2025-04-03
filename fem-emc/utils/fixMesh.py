@@ -101,10 +101,10 @@ class Mesh:
         return self.__str__()
  
 if __name__ == "__main__":
-    mesh = Mesh("../genmesh/data/mesh.txt")
+    mesh = Mesh("genmesh/data/mesh.txt")
     print(mesh)
     mesh.unfuck()
     print("Mesh generated and fixed, merci Michel !")
     deleted_nodes = mesh.nnodes - mesh.nodes.shape[0]
     print(f"Number of nodes deleted: {deleted_nodes}")
-    mesh.write("mesh.txt")
+    mesh.write("data/mesh.txt")

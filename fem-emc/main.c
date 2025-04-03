@@ -103,7 +103,7 @@ int main(int argc, char** argv){
             glColor3f(1.0,0.0,0.0); glfemMessage(theMessage); }
          glfwSwapBuffers(window);
          glfwPollEvents();
-        usleep(40000);
+        usleep(70000);
     } while( glfwGetKey(window,GLFW_KEY_ESCAPE) != GLFW_PRESS &&
              glfwWindowShouldClose(window) != 1 );
     free(normDisplacement);

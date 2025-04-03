@@ -69,7 +69,7 @@ target_link_libraries(
         ${OPENGL_gl_LIBRARY}
         ${GMSH_LIBRARY}
 )
-
+target_compile_options(${EXEC_NAME} PUBLIC "-Wno-stringop-truncation") 
 if(APPLE)
     target_compile_options(${EXEC_NAME} PRIVATE "-Wdeprecated-declarations")
     target_compile_definitions(${EXEC_NAME} PRIVATE -D GL_SILENCE_DEPRECATION)

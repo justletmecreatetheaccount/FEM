@@ -9,7 +9,7 @@ void elasticity_solve(const char *meshfile, const char *outfile, double E,
   femProblem *theProblem =
       femElasticityCreate(theGeometry, E, nu, rho, g, PLANAR_STRAIN);
 
-  if (strcmp(meshfile, "../data/mesh_ref.txt")) {
+  if (strcmp(meshfile, "../data/mesh_ref.txt\n")) {
 
     // Boundary conditions are Dirichlet X and Y
     femElasticityAddBoundaryCondition(theProblem, "Base", DIRICHLET_X, 0.0);

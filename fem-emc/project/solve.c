@@ -9,10 +9,9 @@ void elasticity_solve(const char *meshfile, const char *outfile, double E, doubl
 
   // Boundary conditions are Dirichlet X and Y
   femElasticityAddBoundaryCondition(theProblem, "Plate left", NEUMANN_X, 1e5);
-  femElasticityAddBoundaryCondition(theProblem, "Plate right", NEUMANN_X, -1e5);   
-  femElasticityAddBoundaryCondition(theProblem, "Plate bottom", DIRICHLET_X, 0.0);    
+  femElasticityAddBoundaryCondition(theProblem, "Plate right", NEUMANN_X, -1e5);      
   femElasticityAddBoundaryCondition(theProblem, "Plate bottom", DIRICHLET_Y, 0.0);    
-
+ 
   // Assemble and solve
   // femElasticityPrint(theProblem);
   double *theSoluce = femElasticitySolve(theProblem);

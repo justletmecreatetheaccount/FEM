@@ -21,7 +21,7 @@ int main(int argc, char** argv){
     Plot plot = elasticity_solve(meshfile, outfile);
     timespec_get(&t1, TIME_UTC);
     double exec_time = (t1.tv_sec - t0.tv_sec)*1.0 + (t1.tv_nsec - t0.tv_nsec)*1e-9;
-    printf("\033[34m[INFO]Your code runs in %.4fs for mesh file '%s'\033[0m\n",exec_time, meshfile);
+    printf("\033[34m[INFO] Code ran in %.4fs for mesh file '%s'\033[0m\n",exec_time, meshfile);
     
     // extracting arrays for the plot
     femProblem* theProblem = plot.theProblem;

@@ -14,20 +14,6 @@ femGeo theGeometry;
 
 femGeo *geoGetGeometry() { return &theGeometry; }
 
-double geoSizeDefault(double x, double y) { return theGeometry.h; }
-
-double geoGmshSize(int dim, int tag, double x, double y, double z, double lc,
-                   void *data) {
-  return theGeometry.geoSize(x, y);
-}
-void geoInitialize() {
-  theGeometry.geoSize = geoSizeDefault;
-  theGeometry.theNodes = NULL;
-  theGeometry.theElements = NULL;
-  theGeometry.theEdges = NULL;
-  theGeometry.nDomains = 0;
-  theGeometry.theDomains = NULL;
-}
 
 void geoFinalize() {
 
@@ -49,114 +35,6 @@ void geoFinalize() {
     free(theGeometry.theDomains[i]);
   }
   free(theGeometry.theDomains);
-}
-
-void geoSetSizeCallback(double (*func)(double x, double y)) {
-  theGeometry.geoSize = func;
-}
-
-void geoMeshPrint() {
-  femNodes *theNodes = theGeometry.theNodes;
-  if (theNodes != NULL) {
-    printf("Number of nodes %d \n", theNodes->nNodes);
-    for (int i = 0; i < theNodes->nNodes; i++) {
-      printf("%6d : %14.7e %14.7e \n", i, theNodes->X[i], theNodes->Y[i]);
-    }
-  }
-  femMesh *theEdges = theGeometry.theEdges;
-  if (theEdges != NULL) {
-    printf("Number of edges %d \n", theEdges->nElem);
-    int *elem = theEdges->elem;
-    for (int i = 0; i < theEdges->nElem; i++) {
-      printf("%6d : %6d %6d \n", i, elem[2 * i], elem[2 * i + 1]);
-    }
-  }
-  femMesh *theElements = theGeometry.theElements;
-  if (theElements != NULL) {
-    if (theElements->nLocalNode == 3) {
-      printf("Number of triangles %d \n", theElements->nElem);
-      int *elem = theElements->elem;
-      for (int i = 0; i < theElements->nElem; i++) {
-        printf("%6d : %6d %6d %6d\n", i, elem[3 * i], elem[3 * i + 1],
-               elem[3 * i + 2]);
-      }
-    }
-    if (theElements->nLocalNode == 4) {
-      printf("Number of quads %d \n", theElements->nElem);
-      int *elem = theElements->elem;
-      for (int i = 0; i < theElements->nElem; i++) {
-        printf("%6d : %6d %6d %6d %6d\n", i, elem[4 * i], elem[4 * i + 1],
-               elem[4 * i + 2], elem[4 * i + 3]);
-      }
-    }
-  }
-  int nDomains = theGeometry.nDomains;
-  printf("Number of domains %d\n", nDomains);
-  for (int iDomain = 0; iDomain < nDomains; iDomain++) {
-    femDomain *theDomain = theGeometry.theDomains[iDomain];
-    printf("  Domain : %6d \n", iDomain);
-    printf("  Name : %s\n", theDomain->name);
-    printf("  Number of elements : %6d\n", theDomain->nElem);
-    for (int i = 0; i < theDomain->nElem; i++) {
-      //         if (i != theDomain->nElem  && (i % 10) != 0)  printf(" - ");
-      printf("%6d", theDomain->elem[i]);
-      if ((i + 1) != theDomain->nElem && (i + 1) % 10 == 0)
-        printf("\n");
-    }
-    printf("\n");
-  }
-}
-
-void geoMeshWrite(const char *filename) {
-  FILE *file = fopen(filename, "w");
-
-  femNodes *theNodes = theGeometry.theNodes;
-  fprintf(file, "Number of nodes %d \n", theNodes->nNodes);
-  for (int i = 0; i < theNodes->nNodes; i++) {
-    fprintf(file, "%6d : %14.7e %14.7e \n", i, theNodes->X[i], theNodes->Y[i]);
-  }
-
-  femMesh *theEdges = theGeometry.theEdges;
-  fprintf(file, "Number of edges %d \n", theEdges->nElem);
-  int *elem = theEdges->elem;
-  for (int i = 0; i < theEdges->nElem; i++) {
-    fprintf(file, "%6d : %6d %6d \n", i, elem[2 * i], elem[2 * i + 1]);
-  }
-
-  femMesh *theElements = theGeometry.theElements;
-  if (theElements->nLocalNode == 3) {
-    fprintf(file, "Number of triangles %d \n", theElements->nElem);
-    elem = theElements->elem;
-    for (int i = 0; i < theElements->nElem; i++) {
-      fprintf(file, "%6d : %6d %6d %6d\n", i, elem[3 * i], elem[3 * i + 1],
-              elem[3 * i + 2]);
-    }
-  }
-  if (theElements->nLocalNode == 4) {
-    fprintf(file, "Number of quads %d \n", theElements->nElem);
-    elem = theElements->elem;
-    for (int i = 0; i < theElements->nElem; i++) {
-      fprintf(file, "%6d : %6d %6d %6d %6d\n", i, elem[4 * i], elem[4 * i + 1],
-              elem[4 * i + 2], elem[4 * i + 3]);
-    }
-  }
-
-  int nDomains = theGeometry.nDomains;
-  fprintf(file, "Number of domains %d\n", nDomains);
-  for (int iDomain = 0; iDomain < nDomains; iDomain++) {
-    femDomain *theDomain = theGeometry.theDomains[iDomain];
-    fprintf(file, "  Domain : %6d \n", iDomain);
-    fprintf(file, "  Name : %s\n", theDomain->name);
-    fprintf(file, "  Number of elements : %6d\n", theDomain->nElem);
-    for (int i = 0; i < theDomain->nElem; i++) {
-      fprintf(file, "%6d", theDomain->elem[i]);
-      if ((i + 1) != theDomain->nElem && (i + 1) % 10 == 0)
-        fprintf(file, "\n");
-    }
-    fprintf(file, "\n");
-  }
-
-  fclose(file);
 }
 
 femGeo *geoMeshRead(const char *filename) {
@@ -255,13 +133,6 @@ void femSolutionWrite(int nNodes, int nfields, double *data,
   fclose(file);
 }
 
-void geoSetDomainName(int iDomain, char *name) {
-  if (iDomain >= theGeometry.nDomains)
-    Error("Illegal domain number");
-  if (geoGetDomain(name) != -1)
-    Error("Cannot use the same name for two domains");
-  sprintf(theGeometry.theDomains[iDomain]->name, "%s", name);
-}
 
 int geoGetDomain(char *name) {
   int theIndex = -1;
@@ -986,40 +857,6 @@ void femElasticityAddBoundaryCondition(femProblem *theProblem, char *nameDomain,
   }
 }
 
-void femElasticityPrint(femProblem *theProblem) {
-  printf("\n\n "
-         "====================================================================="
-         "================== \n\n");
-  printf(" Linear elasticity problem \n");
-  printf("   Young modulus   E   = %14.7e [N/m2]\n", theProblem->E);
-  printf("   Poisson's ratio nu  = %14.7e [-]\n", theProblem->nu);
-  printf("   Density         rho = %14.7e [kg/m3]\n", theProblem->rho);
-  printf("   Gravity         g   = %14.7e [m/s2]\n", theProblem->g);
-
-  if (theProblem->planarStrainStress == PLANAR_STRAIN)
-    printf("   Planar strains formulation \n");
-  if (theProblem->planarStrainStress == PLANAR_STRESS)
-    printf("   Planar stresses formulation \n");
-  if (theProblem->planarStrainStress == AXISYM)
-    printf("   Axisymmetric formulation \n");
-
-  printf("   Boundary conditions : \n");
-  for (int i = 0; i < theProblem->nBoundaryConditions; i++) {
-    femBoundaryCondition *theCondition = theProblem->conditions[i];
-    double value = theCondition->value;
-    printf("  %20s :", theCondition->domain->name);
-    if (theCondition->type == DIRICHLET_X)
-      printf(" imposing %9.2e as the horizontal displacement  \n", value);
-    if (theCondition->type == DIRICHLET_Y)
-      printf(" imposing %9.2e as the vertical displacement  \n", value);
-    if (theCondition->type == NEUMANN_X)
-      printf(" imposing %9.2e as the horizontal force desnity \n", value);
-    if (theCondition->type == NEUMANN_Y)
-      printf(" imposing %9.2e as the vertical force density \n", value);
-  }
-  printf(" ===================================================================="
-         "=================== \n\n");
-}
 
 double femElasticityIntegrate(femProblem *theProblem,
                               double (*f)(double x, double y)) {

@@ -50,8 +50,6 @@ typedef struct {
 } femDomain;
 
 typedef struct {
-  double LxPlate, LyPlate;
-  double h;
   femElementType elementType;
   double (*geoSize)(double x, double y);
   femNodes *theNodes;
@@ -109,24 +107,14 @@ typedef struct {
   femFullSystem *system;
 } femProblem;
 
-void geoInitialize();
-femGeo *geoGetGeometry();
-double geoSize(double x, double y);
-double geoSizeDefault(double x, double y);
-void geoSetSizeCallback(double (*geoSize)(double x, double y));
-void geoMeshGenerate();
-void geoMeshImport();
-void geoMeshPrint();
-void geoMeshWrite(const char *filename);
+
 femGeo *geoMeshRead(const char *filename);
 void femSolutionWrite(int nNodes, int nfields, double *data, const char *filename);
-void geoSetDomainName(int iDomain, char *name);
 int geoGetDomain(char *name);
 void geoFinalize();
 
 femProblem *femElasticityCreate(femGeo *theGeometry, double E, double nu, double rho, double g, femElasticCase iCase);
 void femElasticityFree(femProblem *theProblem);
-void femElasticityPrint(femProblem *theProblem);
 void femElasticityAddBoundaryCondition(femProblem *theProblem, char *nameDomain, femBoundaryType type, double value);
 void femElasticityAssembleElements(femProblem *theProblem);
 void femElasticityAssembleNeumann(femProblem *theProblem);

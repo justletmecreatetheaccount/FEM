@@ -3,7 +3,8 @@
 #include <stdio.h>
 
 void elasticity_solve(const char *meshfile, const char *outfile, double E,
-                      double nu, double rho, double g) {
+                      double nu, double rho, double g)
+{
   // Read the mesh and the problem
   femGeo *theGeometry = geoMeshRead(meshfile);
   femProblem *theProblem =

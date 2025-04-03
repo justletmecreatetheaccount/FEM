@@ -547,6 +547,8 @@ void geoMeshGenerate()
         gmshModelGeoMeshSetRecombine(2, 1, 45, &ierr);
         gmshModelMeshGenerate(2, &ierr);
     }
+    //gmshFltkInitialize(&ierr);
+    //gmshFltkRun(&ierr);
 }
 double femMin(double *x, int n)
 {

@@ -5,7 +5,7 @@
 #include <math.h>
 #include "project/fem.h"
 #include "genmesh/src/glfem.h"
-
+#include <unistd.h>
 
 
 
@@ -17,40 +17,34 @@ int main(int argc, char** argv){
     if (argc > 2) outfile  = argv[2];
 
     struct timespec t0, t1;
-
-
     timespec_get(&t0, TIME_UTC);
     Plot plot = elasticity_solve(meshfile, outfile);
     timespec_get(&t1, TIME_UTC);
-
-    // Do not print the value here to not incur IO overhead
     double exec_time = (t1.tv_sec - t0.tv_sec)*1.0 + (t1.tv_nsec - t0.tv_nsec)*1e-9;
     printf("\033[34m[INFO]Your code runs in %.4fs for mesh file '%s'\033[0m\n",exec_time, meshfile);
+    
+    
     femProblem* theProblem = plot.theProblem;
     femGeo* theGeometry = plot.theGeometry;
     double* theSoluce = plot.theSoluce;
     double* theForces = plot.theForces;
 
     femNodes *theNodes = theGeometry->theNodes;
-    double deformationFactor = 1e5;
+    double maxDeformation = 1e5;
+    double deformationFactor = 0.0;
+    double deformationStep = 1e4;
+    double prev = 0;
     double *normDisplacement = malloc(theNodes->nNodes * sizeof(double));
     double *forcesX = malloc(theNodes->nNodes * sizeof(double));
     double *forcesY = malloc(theNodes->nNodes * sizeof(double));
     
-    for (int i=0; i<theNodes->nNodes; i++){
-        theNodes->X[i] += theSoluce[2*i+0]*deformationFactor;
-        theNodes->Y[i] += theSoluce[2*i+1]*deformationFactor;
-        normDisplacement[i] = sqrt(theSoluce[2*i+0]*theSoluce[2*i+0] + 
-                                   theSoluce[2*i+1]*theSoluce[2*i+1]);
-        forcesX[i] = theForces[2*i+0];
-        forcesY[i] = theForces[2*i+1]; }
 
     int mode = 1; 
     int domain = 0;
     int freezingButton = FALSE;
     double t, told = 0;
     char theMessage[MAXNAME];
-   
+
  
     GLFWwindow* window = glfemInit("EPL1110 : Recovering forces on constrained nodes");
     glfwMakeContextCurrent(window);
@@ -67,7 +61,24 @@ int main(int argc, char** argv){
         if (glfwGetKey(window,'Y') == GLFW_PRESS) { mode = 3;}
         if (glfwGetKey(window,'N') == GLFW_PRESS && freezingButton == FALSE) { domain++; freezingButton = TRUE; told = t;}
         if (t-told > 0.5) {freezingButton = FALSE; }
-        
+        prev = deformationFactor;
+        deformationFactor += deformationStep;
+        if (deformationFactor >= maxDeformation){
+            deformationFactor = maxDeformation;
+        }
+        int nNodes = theNodes->nNodes;
+        for (int i = 0; i < nNodes; i++){
+            theNodes->X[i] -= theSoluce[2*i+0]*prev;
+            theNodes->Y[i] -= theSoluce[2*i+1]*prev;
+        }
+        for (int i = 0; i < nNodes; i++){
+            theNodes->X[i] += theSoluce[2*i+0]*deformationFactor;
+            theNodes->Y[i] += theSoluce[2*i+1]*deformationFactor;
+            normDisplacement[i] = sqrt(theSoluce[2*i+0]*theSoluce[2*i+0] + 
+                            theSoluce[2*i+1]*theSoluce[2*i+1]);
+            forcesX[i] = theForces[2*i+0];
+            forcesY[i] = theForces[2*i+1];
+        }
         if (mode == 0) {
             domain = domain % theGeometry->nDomains;
             glfemPlotDomain( theGeometry->theDomains[domain]); 
@@ -91,6 +102,7 @@ int main(int argc, char** argv){
             glColor3f(1.0,0.0,0.0); glfemMessage(theMessage); }
          glfwSwapBuffers(window);
          glfwPollEvents();
+        usleep(40000);
     } while( glfwGetKey(window,GLFW_KEY_ESCAPE) != GLFW_PRESS &&
              glfwWindowShouldClose(window) != 1 );
     free(normDisplacement);

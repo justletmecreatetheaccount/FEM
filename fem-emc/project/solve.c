@@ -3,28 +3,23 @@
 #include <stdio.h>
 
 void elasticity_solve(const char *meshfile, const char *outfile, double E,
-                      double nu, double rho, double g) {
+                      double nu, double rho, double g)
+{
   // Read the mesh and the problem
   femGeo *theGeometry = geoMeshRead(meshfile);
   femProblem *theProblem =
       femElasticityCreate(theGeometry, E, nu, rho, g, PLANAR_STRAIN);
 
-  if (strcmp(meshfile, "../data/mesh_ref.txt\n")) {
-
-    // Boundary conditions are Dirichlet X and Y
-    femElasticityAddBoundaryCondition(theProblem, "Base", DIRICHLET_X, 0.0);
-    femElasticityAddBoundaryCondition(theProblem, "Base", DIRICHLET_Y, 0.0);
-    femElasticityAddBoundaryCondition(theProblem, "Symmetry", DIRICHLET_X, 0.0);
-    femElasticityAddBoundaryCondition(theProblem, "Symmetry", DIRICHLET_Y, 0.0);
-  } else {
-
-    // Boundary conditions are Dirichlet X and Y
-    femElasticityAddBoundaryCondition(theProblem, "Plate left", NEUMANN_X, 1e5);
-    femElasticityAddBoundaryCondition(theProblem, "Plate right", NEUMANN_X,
-                                      -1e5);
-    femElasticityAddBoundaryCondition(theProblem, "Plate bottom", DIRICHLET_Y,
-                                      0.0);
-  }
+  // Boundary conditions are Dirichlet X and Y
+  femElasticityAddBoundaryCondition(theProblem, "Plate left", DIRICHLET_X, 3 * 10e-7);
+  femElasticityAddBoundaryCondition(theProblem, "Plate right", DIRICHLET_X,
+                                    -3 * 10e-7);
+  femElasticityAddBoundaryCondition(theProblem, "Plate right", DIRICHLET_X,
+                                    -3 * 10e-7);
+  femElasticityAddBoundaryCondition(theProblem, "Plate bottom", DIRICHLET_Y,
+                                    0.0);
+  femElasticityAddBoundaryCondition(theProblem, "Plate bottom", DIRICHLET_X,
+                                    0.0);
 
   // Assemble and solve
   // femElasticityPrint(theProblem);

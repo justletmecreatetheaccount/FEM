@@ -10,23 +10,38 @@
  */
  
 #include "glfem.h"
-
+#include <stdbool.h>
 
 int main(int argc, char *argv[])
-{   char tri= '0';
-    char plot;
-    if (argc < 2)
+{   
+    bool tri = false;
+    bool plot = false;
+
+    for (int i = 1; i < argc; i++)
     {
-        printf("\033[34m[INFO]You can to specifiy more arguments when creating the mesh, the first should 1 or 0 to create triangles or quads and the second 1 or 0 to plot it or not\033[0m\n");
-    } else {
-        tri = *argv[1];
-        if (argc == 3){
-            plot = *argv[2];
-        } else {
-            plot = 0;
+        if (strcmp(argv[i], "tri") == 0)
+        {
+            tri = true;
+        }
+        else if (strcmp(argv[i], "quad") == 0)
+        {
+            tri = false;
+        }
+        else if (strcmp(argv[i], "plot") == 0)
+        {
+            plot = true;
         }
     }
 
+    if (tri)
+        printf("\033[34m[INFO]Using triangular elements\033[0m\n");
+    else
+        printf("\033[34m[INFO]Using quadrilateral elements\033[0m\n");
+
+    if (plot)
+        printf("\033[34m[INFO]Plotting is enabled\033[0m\n");
+    else
+        printf("\033[34m[INFO]Plotting is disabled\033[0m\n");
 
     
     geoInitialize();
@@ -34,31 +49,39 @@ int main(int argc, char *argv[])
     theGeometry->elementType = FEM_QUAD;
 
     double w = 1.0;
-    double h = 2.0;
+    double h = 3.0;
+
+    // Plate dimensions
     theGeometry->w_plate = w;
     theGeometry->h_plate = h;
-    theGeometry->x_plate = -w / 2.0;
-    theGeometry->y_plate = -h / 2.0;
-    
-    theGeometry->x_hole1 = -w / 4.0;
-    theGeometry->y_hole1 = -3 * h / 8.0;
+    theGeometry->x_plate = 0.0;
+    theGeometry->y_plate = 0.0;
+
+    // Hole 1
+    theGeometry->x_hole1 = w / 4.0;
+    theGeometry->y_hole1 = 1.0 / 4.0;  // shifted in y by +1
     theGeometry->w_hole1 = w / 2.0;
-    theGeometry->h_hole1 = h / 4.0;
-    
-    theGeometry->x_hole2 = -w / 4.0;
-    theGeometry->y_hole2 = h / 8.0;
+    theGeometry->h_hole1 = h / 6.0;
+
+    theGeometry->x_hole2 = w / 4.0;
+    theGeometry->y_hole2 = 5.0 / 4.0;
     theGeometry->w_hole2 = w / 2.0;
-    theGeometry->h_hole2 = h / 4.0;
-    
+    theGeometry->h_hole2 = h / 6.0;
+
+    theGeometry->x_hole3 = w / 4.0;
+    theGeometry->y_hole3 = 9.0/4.0;
+    theGeometry->w_hole3 = w / 2.0;
+    theGeometry->h_hole3 = h / 6.0;
+        
     theGeometry->d = 0.5;// transition zone for hole
     theGeometry->s = 0.05;// refined mesh size near hole 1
 
     theGeometry->h = w * 0.1;
 
-    if (tri == '1'){
+    if (tri == true){
         theGeometry->elementType = FEM_TRIANGLE;
     }
-    if (tri == '0'){
+    if (tri == false){
         theGeometry->elementType = FEM_QUAD;
     }
 
@@ -111,7 +134,7 @@ int main(int argc, char *argv[])
     printf(" ==== Maximum h          : %14.7e \n",hMax);
     printf("\033[32m[SUCCESS] Le maillage a bien été générer\033[0m\n");
     
-    if (plot == '1'){
+    if (plot == true){
         char theMessage[MAXNAME];
     
     

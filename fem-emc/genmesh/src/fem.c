@@ -423,6 +423,7 @@ double geoSize(double x, double y)
 
     double h = theGeometry->h;
 
+    // Hole 1 parameters
     double x0 = theGeometry->x_hole1 + 0.5 * theGeometry->w_hole1; // center X
     double y0 = theGeometry->y_hole1 + 0.5 * theGeometry->h_hole1; // center Y
     double halfW0 = 0.5 * theGeometry->w_hole1;
@@ -430,6 +431,7 @@ double geoSize(double x, double y)
     double d0 = theGeometry->d;
     double h0 = theGeometry->s;
 
+    // Hole 2 parameters
     double x1 = theGeometry->x_hole2 + 0.5 * theGeometry->w_hole2; // center X
     double y1 = theGeometry->y_hole2 + 0.5 * theGeometry->h_hole2; // center Y
     double halfW1 = 0.5 * theGeometry->w_hole2;
@@ -437,24 +439,38 @@ double geoSize(double x, double y)
     double d1 = theGeometry->d;
     double h1 = theGeometry->s;
 
+    // Hole 3 parameters
+    double x2 = theGeometry->x_hole3 + 0.5 * theGeometry->w_hole3; // center X
+    double y2 = theGeometry->y_hole3 + 0.5 * theGeometry->h_hole3; // center Y
+    double halfW2 = 0.5 * theGeometry->w_hole3;
+    double halfH2 = 0.5 * theGeometry->h_hole3;
+    double d2 = theGeometry->d;
+    double h2 = theGeometry->s;
+
     double result = h;
 
+    // Distance to hole 1
     double dx0 = fabs(x - x0) - halfW0;
     double dy0 = fabs(y - y0) - halfH0;
-    if (dx0 < 0.0)
-        dx0 = 0.0;
-    if (dy0 < 0.0)
-        dy0 = 0.0;
+    if (dx0 < 0.0) dx0 = 0.0;
+    if (dy0 < 0.0) dy0 = 0.0;
     double dist0 = sqrt(dx0 * dx0 + dy0 * dy0);
 
+    // Distance to hole 2
     double dx1 = fabs(x - x1) - halfW1;
     double dy1 = fabs(y - y1) - halfH1;
-    if (dx1 < 0.0)
-        dx1 = 0.0;
-    if (dy1 < 0.0)
-        dy1 = 0.0;
+    if (dx1 < 0.0) dx1 = 0.0;
+    if (dy1 < 0.0) dy1 = 0.0;
     double dist1 = sqrt(dx1 * dx1 + dy1 * dy1);
 
+    // Distance to hole 3
+    double dx2 = fabs(x - x2) - halfW2;
+    double dy2 = fabs(y - y2) - halfH2;
+    if (dx2 < 0.0) dx2 = 0.0;
+    if (dy2 < 0.0) dy2 = 0.0;
+    double dist2 = sqrt(dx2 * dx2 + dy2 * dy2);
+
+    // Adjust mesh size near hole 1
     if (dist0 <= d0)
     {
         double a2 = (3.0 * (h - h0)) / (d0 * d0);
@@ -463,6 +479,7 @@ double geoSize(double x, double y)
         result = val0 < result ? val0 : result;
     }
 
+    // Adjust mesh size near hole 2
     if (dist1 <= d1)
     {
         double a2 = (3.0 * (h - h1)) / (d1 * d1);
@@ -471,9 +488,17 @@ double geoSize(double x, double y)
         result = val1 < result ? val1 : result;
     }
 
+    // Adjust mesh size near hole 3
+    if (dist2 <= d2)
+    {
+        double a2 = (3.0 * (h - h2)) / (d2 * d2);
+        double a3 = (2.0 * (h2 - h)) / (d2 * d2 * d2);
+        double val2 = h2 + a2 * (dist2 * dist2) + a3 * (dist2 * dist2 * dist2);
+        result = val2 < result ? val2 : result;
+    }
+
     return result;
 }
-
 void geoMeshGenerate()
 {
     femGeo *theGeometry = geoGetGeometry();
@@ -484,15 +509,25 @@ void geoMeshGenerate()
     int idRect = gmshModelOccAddRectangle(theGeometry->x_plate, theGeometry->y_plate, 0.0, theGeometry->w_plate, theGeometry->h_plate, -1, 0.1, &ierr);
 
     int idHoleDown = gmshModelOccAddRectangle(theGeometry->x_hole1, theGeometry->y_hole1, 0.0, theGeometry->w_hole1, theGeometry->h_hole1, -1, 0.1, &ierr);
-
     int idHoleUp = gmshModelOccAddRectangle(theGeometry->x_hole2, theGeometry->y_hole2, 0.0, theGeometry->w_hole2, theGeometry->h_hole2, -1, 0.1, &ierr);
+
+    // Third hole
+    int idHoleThird = gmshModelOccAddRectangle(theGeometry->x_hole3, theGeometry->y_hole3, 0.0,
+                                               theGeometry->w_hole3, theGeometry->h_hole3,
+                                               -1, 0.1, &ierr);
+
     int rect[] = {2, idRect};
     int holeDown[] = {2, idHoleDown};
     int holeUp[] = {2, idHoleUp};
+    int holeThird[] = {2, idHoleThird};
+
     gmshModelOccCut(rect, 2, holeDown, 2, NULL, NULL, NULL, NULL, NULL, -1, 1, 1, &ierr);
     ErrorGmsh(ierr);
     gmshModelOccCut(rect, 2, holeUp, 2, NULL, NULL, NULL, NULL, NULL, -1, 1, 1, &ierr);
     ErrorGmsh(ierr);
+    gmshModelOccCut(rect, 2, holeThird, 2, NULL, NULL, NULL, NULL, NULL, -1, 1, 1, &ierr);
+    ErrorGmsh(ierr);
+
     gmshModelOccSynchronize(&ierr);
     geoSetSizeCallback(geoSize);
 
@@ -513,7 +548,6 @@ void geoMeshGenerate()
         gmshModelMeshGenerate(2, &ierr);
     }
 }
-
 double femMin(double *x, int n)
 {
     double myMin = x[0];

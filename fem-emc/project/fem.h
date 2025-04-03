@@ -22,7 +22,7 @@
 #define Warning(a) femWarning(a, __LINE__, __FILE__)
 #define FALSE 0
 #define TRUE 1
-#define MAXNAME 256
+#define MAXNAME 512
 #define TOL 1.e-10
 
 typedef enum { FEM_TRIANGLE, FEM_QUAD, FEM_EDGE } femElementType;

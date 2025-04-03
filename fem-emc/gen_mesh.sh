@@ -1,7 +1,7 @@
 cd genmesh/build
 cmake ..
 make
-./genmesh
+./genmesh plot
 cd ../../data
 python3 fixMesh.py
 cd ..

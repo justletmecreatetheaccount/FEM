@@ -2,7 +2,7 @@
 #include "fem.h"
 #include <stdio.h>
 
-void elasticity_solve(const char *meshfile, const char *outfile)
+Plot elasticity_solve(const char *meshfile, const char *outfile)
 {
     // Read the mesh and the problem
     femGeo *theGeometry = geoMeshRead(meshfile);
@@ -25,13 +25,11 @@ void elasticity_solve(const char *meshfile, const char *outfile)
     // Assemble and solve
     // femElasticityPrint(theProblem);
     double *theSoluce = femElasticitySolve(theProblem);
-    femElasticityForces(theProblem);
-
+    double *theForces = femElasticityForces(theProblem);
+    Plot res = {theProblem, theGeometry, theForces, theSoluce};
     // Write out the solution
     int nNodes = theGeometry->theNodes->nNodes;
     femSolutionWrite(nNodes, 2, theSoluce, outfile);
+    return res;
 
-    // free the allocated ressources
-    femElasticityFree(theProblem);
-    geoFinalize(theGeometry);
 }

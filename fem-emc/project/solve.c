@@ -1,14 +1,12 @@
-#include "../benchmark.h"
+#include "../main.h"
 #include "fem.h"
 #include <stdio.h>
 
-void elasticity_solve(const char *meshfile, const char *outfile, double E,
-                      double nu, double rho, double g)
+void elasticity_solve(const char *meshfile, const char *outfile)
 {
-  // Read the mesh and the problem
-  femGeo *theGeometry = geoMeshRead(meshfile);
-  femProblem *theProblem =
-      femElasticityCreate(theGeometry, E, nu, rho, g, PLANAR_STRAIN);
+    // Read the mesh and the problem
+    femGeo *theGeometry = geoMeshRead(meshfile);
+    femProblem *theProblem = femElasticityCreate(theGeometry, _E, _NU, _RHO, _G, PLANAR_STRAIN);
 
   if (!strcmp(meshfile, "../data/mesh_ref.txt")) {
 
@@ -58,11 +56,11 @@ void elasticity_solve(const char *meshfile, const char *outfile, double E,
   printf(" ==== Global horizontal force       : %14.7e [N] \n",theGlobalForce[0]);
   printf(" ==== Global vertical force         : %14.7e [N] \n",theGlobalForce[1]);
 
-  // Write out the solution
-  int nNodes = theGeometry->theNodes->nNodes;
-  femSolutionWrite(nNodes, 2, theSoluce, outfile);
+    // Write out the solution
+    int nNodes = theGeometry->theNodes->nNodes;
+    femSolutionWrite(nNodes, 2, theSoluce, outfile);
 
-  // free the allocated ressources
-  femElasticityFree(theProblem);
-  geoFinalize(theGeometry);
+    // free the allocated ressources
+    femElasticityFree(theProblem);
+    geoFinalize(theGeometry);
 }

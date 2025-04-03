@@ -12,7 +12,7 @@ void femElasticityAssembleElements(femProblem *theProblem) {
   femNodes *theNodes = theGeometry->theNodes;
   femMesh *theMesh = theGeometry->theElements;
   double x[4], y[4], phi[4], dphidxsi[4], dphideta[4], dphidx[4], dphidy[4];
-  int iElem, iInteg, i, j, d, map[4], mapX[4], mapY[4];
+  int iElem, iInteg, i, j, map[4], mapX[4], mapY[4];
   int nLocal = theMesh->nLocalNode;
   double a = theProblem->A;
   double b = theProblem->B;

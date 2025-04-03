@@ -119,18 +119,15 @@ void geoMeshImport();
 void geoMeshPrint();
 void geoMeshWrite(const char *filename);
 femGeo *geoMeshRead(const char *filename);
-void femSolutionWrite(int nNodes, int nfields, double *data,
-                      const char *filename);
+void femSolutionWrite(int nNodes, int nfields, double *data, const char *filename);
 void geoSetDomainName(int iDomain, char *name);
 int geoGetDomain(char *name);
 void geoFinalize();
 
-femProblem *femElasticityCreate(femGeo *theGeometry, double E, double nu,
-                                double rho, double g, femElasticCase iCase);
+femProblem *femElasticityCreate(femGeo *theGeometry, double E, double nu, double rho, double g, femElasticCase iCase);
 void femElasticityFree(femProblem *theProblem);
 void femElasticityPrint(femProblem *theProblem);
-void femElasticityAddBoundaryCondition(femProblem *theProblem, char *nameDomain,
-                                       femBoundaryType type, double value);
+void femElasticityAddBoundaryCondition(femProblem *theProblem, char *nameDomain, femBoundaryType type, double value);
 void femElasticityAssembleElements(femProblem *theProblem);
 void femElasticityAssembleNeumann(femProblem *theProblem);
 double *femElasticitySolve(femProblem *theProblem);
@@ -146,8 +143,7 @@ void femDiscreteFree(femDiscrete *mySpace);
 void femDiscretePrint(femDiscrete *mySpace);
 void femDiscreteXsi2(femDiscrete *mySpace, double *xsi, double *eta);
 void femDiscretePhi2(femDiscrete *mySpace, double xsi, double eta, double *phi);
-void femDiscreteDphi2(femDiscrete *mySpace, double xsi, double eta,
-                      double *dphidxsi, double *dphideta);
+void femDiscreteDphi2(femDiscrete *mySpace, double xsi, double eta, double *dphidxsi, double *dphideta);
 void femDiscreteXsi(femDiscrete *mySpace, double *xsi);
 void femDiscretePhi(femDiscrete *mySpace, double xsi, double *phi);
 void femDiscreteDphi(femDiscrete *mySpace, double xsi, double *dphidxsi);

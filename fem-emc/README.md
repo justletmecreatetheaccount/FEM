@@ -39,39 +39,41 @@ pip install numpy
 Ci dessous la structure du projet pour un programme qui à déjà tourner et avec donc les fichiers de build et mesh
 ```
 .
-├── main.c                      <- the main program
-├── main.h
 ├── build                       <- build folder (to create)
-├── CMakeLists.txt              <- main cmake configuration
+├── _clean.sh
+├── CMakeLists.txt
 ├── data                        <- meshes folder
-│   ├── fixMesh.py              <- python program to fix meshes from gmsh
-│   ├── mesh_ref.txt            <- a reference mesh for another geometry
-│   ├── mesh.txt                <- the mesh fixed by fixMesh.py
-│   ├── UV_ref.txt              <- the solution to the reference mesh
-│   └── UV.txt                  <- the solution to mesh.txt problem
+│   ├── mesh_ref.txt
+│   ├── mesh.txt                <- the mesh (generated)
+│   └── UV_ref.txt
 ├── genmesh                     <- folder containing the mesh generator
 │   ├── build                   <- build folder (to create)  
 │   ├── CMakeLists.txt
-│   ├── data                    
-│   │   └── mesh.txt            <- the generated mesh
-│   ├── glfw                    <- openGL interface
-│   └── src                     
+│   ├── glfw                    <- openGL interface for showing the mesh
+│   ├── gmsh                    <- the gmsh folder used to generate mesh
+│   └── src
 │       ├── fem.c               <- utils and mesh generator
-│       ├── fem.h               
-│       ├── glfem.c             <- utils for window creation
+│       ├── fem.h
+│       ├── glfem.c             <- utils for window creation (opengl)
 │       ├── glfem.h
 │       └── main.c              <- core program to generate mesh
-├── gmsh                        <- the gmsh folder used to generate mesh
-├── plot.py                     <- python program to plot results
+├── _init.sh
+├── main.c                      <- the main program
+├── main.h
+├── _mesh.sh
 ├── project                     <- folder containting the solver
+│   ├── assemble.c              <- assemble the problem and matrices
 │   ├── CMakeLists.txt
-│   ├── solve.c                 <- the solver implementation
-│   ├── fem.c                   <- utils
+│   ├── fem.c                   <- utils and core of the solver
 │   ├── fem.h
-│   └── assemble.c              <- assemble the problem and matrices
+│   └── solve.c                 <- the problem definition and solver
 ├── README.md                   <- you are here
-└── validate.py                 <- python program to compare meshes
-
+├── ReadMe.txt                  <- required by instructions
+├── _run.sh
+└── utils
+    ├── fixMesh.py              <- python program to fix meshes from gmsh
+    ├── plot.py                 <- python program to plot results
+    └── validate.py             <- python program to compare solutions
 ```
 
 ### Initialisation
@@ -96,7 +98,7 @@ ce qui va générer les fichiers de build, ensuite on compile le programme de g�
 make
 ```
 et enfin, on peut faire tourner l'exécutable avec 
-```
+```sh
 ./genmesh
 ```
 L'exécutable peut également prendre deux paramètres en entrée (`quad`/`tri` et `plot`) qui nous disent si l'exécutable dois utiliser des quads ou non, le programme choisis les quads par défaut, exemple : `./genmesh tri` pour des triangles. Par défaut les quads sont choisis.
@@ -125,15 +127,15 @@ On peut donc facilement les changer pour adapter l'analyse a un autre matériaux
 
 Pour résoudre le problème, et afficher les déformations subies, il faut naviguer dans `./build/`
 puis exécuter
-```
+```sh
 cmake ..
 ```
 suivis par 
-```
+```sh
 make
 ```
 et finalement
-```
+```sh
 ./solve
 ```
 le binaire solve peut prendre comme argument le chemin du fichier d'entrée et de sortie (dans cet ordre)
@@ -150,3 +152,30 @@ Concernant la fenêtre ouverte, elle permet aussi de visualiser d'autre chose en
 | `Y`   | Vue des forces sur les domaines frontières en Y       |
 
 En executant `./solve` un benchmark apparait dans les logs, c'est le temps utiliser pour resoudre le système
+
+## Code
+
+Cette section est pour détaillé les parties de code plus intéréssantes à voir
+
+### Génération de Mesh
+
+Pour générer le mesh, le code utiliser est inspiré du devoir 2 et 6, avec cependant une geométrie différente. La géométrie est définie dans `./genmesh/src/fem.c` par la fonction `void geoMeshGenerate()`, avec la fonction  `double geoSize(double x, double y)` associée au problème
+
+### Solveur
+
+Pour résoudre le problème, le code provient en grosse partie du devoir 6 et du template fournis pour le concours avec quelques ajustements. Les conditions frontières sont définies dans `./project/solve.c`
+tandis que le solveur est défini dans `./project/assemble.c` et est appelé par `double *femElasticitySolve(femProblem *theProblem)`
+
+### Plots
+
+Pour ce projet, plusieurs fenêtres sont créées, le code de ces dernières provient des devoirs et a été ajusté pour le probleme et les prérequis
+
+
+## Notes générales
+
+- Si en changeant le mesh vous tomber sur une erreur de pivot (ce n'est pas toujours le cas), c'est qu'il faut réparer le mesh en exécutant
+```sh
+python3 utils/fixMesh.py
+```
+
+- Pour éviter le code inutile, les fonctions non-utilisées des fichiers fem.c et fem.h ont été retirée

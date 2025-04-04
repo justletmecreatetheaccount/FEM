@@ -10,6 +10,8 @@ void elasticity_solve(const char *meshfile, const char *outfile, double E,
 
   femProblemCsr *theProblem =
       femElasticityCreateCsr(theGeometry, E, nu, rho, g, PLANAR_STRAIN);
+  femProblem *theProblem2 =
+      femElasticityCreate(theGeometry, E, nu, rho, g, PLANAR_STRAIN);
 
   if (!strcmp(meshfile, "../data/mesh_ref.txt")) {
 
@@ -18,6 +20,11 @@ void elasticity_solve(const char *meshfile, const char *outfile, double E,
     femElasticityAddBoundaryConditionCsr(theProblem, "Base", DIRICHLET_Y, 0.0);
     femElasticityAddBoundaryConditionCsr(theProblem, "Symmetry", DIRICHLET_X, 0.0);
     femElasticityAddBoundaryConditionCsr(theProblem, "Symmetry", DIRICHLET_Y, 0.0);
+
+    femElasticityAddBoundaryCondition(theProblem2, "Base", DIRICHLET_X, 0.0);
+    femElasticityAddBoundaryCondition(theProblem2, "Base", DIRICHLET_Y, 0.0);
+    femElasticityAddBoundaryCondition(theProblem2, "Symmetry", DIRICHLET_X, 0.0);
+    femElasticityAddBoundaryCondition(theProblem2, "Symmetry", DIRICHLET_Y, 0.0);
   } else {
 
     // Boundary conditions are Dirichlet X and Y
@@ -27,11 +34,19 @@ void elasticity_solve(const char *meshfile, const char *outfile, double E,
     femElasticityAddBoundaryConditionCsr(theProblem, "Plate bottom", DIRICHLET_Y,
                                       0.0);
     femElasticityAddBoundaryConditionCsr(theProblem, "Plate bottom", DIRICHLET_X, 0.0);
+
+    femElasticityAddBoundaryCondition(theProblem2, "Plate left", DIRICHLET_X, 1e-6);
+    femElasticityAddBoundaryCondition(theProblem2, "Plate right", DIRICHLET_X,
+                                      -1e-6);
+    femElasticityAddBoundaryCondition(theProblem2, "Plate bottom", DIRICHLET_Y,
+                                      0.0);
+    femElasticityAddBoundaryCondition(theProblem2, "Plate bottom", DIRICHLET_X, 0.0);
   }
 
   // Assemble and solve
   // femElasticityPrint(theProblem);
-  double *theSoluce = femElasticitySolveCsr(theProblem);
+  double *theSoluce = femElasticitySolveCsrDebug(theProblem, theProblem2);
+  double *theSoluce2 = femElasticitySolve(theProblem2);
   //double* theForces = femElasticityForces(theProblem);
   double *normDisplacement = malloc(theGeometry->theNodes->nNodes * sizeof(double));
   //double *forcesX = malloc(theGeometry->theNodes->nNodes * sizeof(double));

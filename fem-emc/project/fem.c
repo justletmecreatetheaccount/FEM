@@ -1143,10 +1143,11 @@ femCsrSystem *femCsrSystemCreate(int size, femGeo *theGeo) {
 }
 
 void femCsrSystemAlloc(femCsrSystem *mySystem, femGeo *theGeo, int size) {
-  int number_individual_links = (theGeo->theElements->nElem * theGeo->theElements->nLocalNode - theGeo->theEdges->nElem) / 2;
-  mySystem->data = malloc(sizeof(double) * (size + 4 * number_individual_links)); 
-  //size for the diagonal, 4 bc eatch entry is a 2x2 matrix and number_individual_links not times 2 because we consider only one half
-  mySystem->column = malloc(sizeof(int) * (size + 4 * number_individual_links));
+  int number_internal_links = (theGeo->theElements->nElem * theGeo->theElements->nLocalNode - theGeo->theEdges->nElem) / 2;
+  int links_per_element = (theGeo->theElements->nLocalNode - 1) * theGeo->theElements->nLocalNode / 2;
+  mySystem->data = malloc(sizeof(double) * (3 * size / 2 + 4 * (links_per_element * theGeo->theElements->nElem - number_internal_links))); 
+  //size for the diagonal, 4 bc eatch entry is a 2x2 matrix
+  mySystem->column = malloc(sizeof(int) * (3 * size / 2 + 4 * (links_per_element * theGeo->theElements->nElem - number_internal_links)));
   mySystem->row_pointer = malloc(sizeof(int) * (size + 1));
   //mySystem->row_pointer[0] = 0;
   //mySystem->row_pointer[size] = size + 4 * number_individual_links; // init here to avoid redoing the math for th number of individual links
@@ -1158,129 +1159,77 @@ void femCsrSystemInit(femCsrSystem *mySystem, femGeo *theGeo) {
   int size = mySystem->size;
   int nElem = theGeo->theElements->nElem;
   int nlocal = theGeo->theElements->nLocalNode;
-  int buffer_size = size; // size chosen arbitrarily
+  int buffer_size = size / 2; // size chosen arbitrarily
   int* row_pointer = mySystem->row_pointer;
   int* column = mySystem->column;
   int* elem = theGeo->theElements->elem;
   // will store all the other nodes already linked to the node
   int* buffer = malloc( buffer_size * sizeof(int)); 
+
+  // initialize the row pointer
+  row_pointer[0] = 0;
+
+
   int found_matches = 0;
-  for (int i = 0; i < size; i++) {
+  for (int i = 0; i < size / 2; i++) {
     for (int j = 0; j < nElem; j++) {
       for (int k = 0; k < nlocal; k++) {
         int node = elem[j * nlocal + k];
-        if (node < i) {
-          // already done
-          continue;;
-        }
-        
         if (node == i) {
-          // Found Match
-          elem[j * nlocal + k] = 0;
-          // Need to check if match already done
-          if (k == nlocal - 1) { // end
-            int nodenext = elem[j * nlocal];
-            int nodeprev = elem[j * nlocal + k - 1];
-            int foundnext = 0;
-            int foundprev = 0;
-            for (int l = 0; l < found_matches; l++) {
-              if (buffer[l] == nodeprev) {
-                // already done
-                foundprev = 1;
+          // found the node
+          for (int l = 0; l < nlocal; l++) {
+            int other_node = elem[j * nlocal + l];
+            // check if the other node is not the same as the node or link already exists
+            if (other_node != node && other_node > i) {
+              // check if the node is already in the buffer 
+              int already_found = 0;
+              for (int m = 0; m < found_matches; m++) {
+                if (buffer[m] == other_node) {
+                  already_found = 1;
+                  break;
+                }
               }
-              if (buffer[l] == nodenext) {
-                // already done
-                foundnext = 1;
+              if (!already_found) {
+                buffer[found_matches] = other_node;
+                found_matches++;
               }
-            }
-            if (foundnext == 0) {
-              // not done
-              buffer[found_matches] = nodenext;
-              found_matches++;
-            }
-            if (foundprev == 0) {
-              // not done
-              buffer[found_matches] = nodeprev;
-              found_matches++;
-            }
-          } else if (k == 0) { // first
-            int nodenext = elem[j * nlocal + k + 1];
-            int nodeprev = elem[j * nlocal + nlocal - 1];
-            int foundnext = 0;
-            int foundprev = 0;
-            for (int l = 0; l < found_matches; l++) {
-              if (buffer[l] == nodeprev) {
-                // already done
-                foundprev = 1;
-              }
-              if (buffer[l] == nodenext) {
-                // already done
-                foundnext = 1;
-              }
-            }
-            if (foundnext == 0) {
-              // not done
-              buffer[found_matches] = nodenext;
-              found_matches++;
-            }
-            if (foundprev == 0) {
-              // not done
-              buffer[found_matches] = nodeprev;
-              found_matches++;
-            }
-          } else { // middle
-            int nodenext = elem[j * nlocal + k + 1];
-            int nodeprev = elem[j * nlocal + k - 1];
-            int foundnext = 0;
-            int foundprev = 0;
-            for (int l = 0; l < found_matches; l++) {
-              if (buffer[l] == nodeprev) {
-                // already done
-                foundprev = 1;
-              }
-              if (buffer[l] == nodenext) {
-                // already done
-                foundnext = 1;
-              }
-            }
-            if (foundnext == 0) {
-              // not done
-              buffer[found_matches] = nodenext;
-              found_matches++;
-            }
-            if (foundprev == 0) {
-              // not done
-              buffer[found_matches] = nodeprev;
-              found_matches++;
             }
           }
         }
-
-
       }
     }
-    printf("found matches %d\n", found_matches);
-    row_pointer[i + 1] = found_matches + row_pointer[i];
-    printf("row_pointer[%d] = %d\n", i + 1, row_pointer[i + 1]);
-    printf("total size %d\n", (theGeo->theElements->nElem * theGeo->theElements->nLocalNode - theGeo->theEdges->nElem) / 2);
+    row_pointer[i * 2 + 1] = found_matches * 2 + row_pointer[2 * i] + 2;
+    row_pointer[i * 2 + 2] = found_matches * 2 + row_pointer[2 * i + 1] + 1;
+    // itself
+    column[row_pointer[2 * i]] = 2 * i;
+    column[row_pointer[2 * i] + 1] = 2 * i + 1;
+    column[row_pointer[2 * i + 1]] = 2 * i + 1;
     for (int j = 0; j < found_matches; j++) {
-      column[row_pointer[i] + j] = buffer[j];
-      mySystem->data[row_pointer[i] + j] = 0;
+      column[2 + row_pointer[2 * i] + 2 * j] = 2 * buffer[j];
+      column[2 + row_pointer[2 * i] + 2 * j + 1] = 2 * buffer[j] + 1;
+      column[1 + row_pointer[2 * i + 1] + 2 * j] = 2 * buffer[j];
+      column[1 + row_pointer[2 * i + 1] + 2 * j + 1] = 2 * buffer[j] + 1;
     }
     for (int j = 0; j < buffer_size; j++) { // not sorted but idcare
-      buffer[j] = 0;
+      buffer[j] = -1;
     }
     found_matches = 0;
   }
 
-  for (int i = 0; i < size * (size + 1); i++)
+  for (int i = 0; i < size; i++)
     mySystem->B[i] = 0;
 
   free(buffer);
-  if (mySystem->row_pointer[size] != (theGeo->theElements->nElem * theGeo->theElements->nLocalNode - theGeo->theEdges->nElem) / 2) {
-    printf("scream"); // fucking debugger
+  int number_internal_links = (theGeo->theElements->nElem * theGeo->theElements->nLocalNode - theGeo->theEdges->nElem) / 2;
+  int links_per_element = (theGeo->theElements->nLocalNode - 1) * theGeo->theElements->nLocalNode / 2;
+  if (mySystem->row_pointer[size] != (3 * size / 2 + 4 * (links_per_element * theGeo->theElements->nElem - number_internal_links))) {
+    printf("scream\n"); // fucking debugger
+    printf("row_pointer[%d] = %d\n", size, mySystem->row_pointer[size]);
+    printf("alocated size = %d\n", (3 * size / 2 + 4 * (links_per_element * theGeo->theElements->nElem - number_internal_links)));
   }
+  printf("Done\n");
 }
+
 
 void femElasticityAddBoundaryConditionCsr(femProblemCsr *theProblem, char *nameDomain,
                                        femBoundaryType type, double value) {
@@ -1420,9 +1369,19 @@ void femElasticityFreeCsr(femProblemCsr *theProblem) {
 }
 
 void dotMatrixVectorCsr(int size, double *data, int* column, int* row_pointer, double *B, double *result) {
-
+  int times = 0;
   for (int i = 0; i < size; i++) {
     result[i] = 0;
+    //lower triangular matrix equiv
+    for (int colrow = 0; colrow < i; colrow++) {
+      for (int j = row_pointer[colrow]; j < row_pointer[colrow + 1]; j++) {
+        if (column[j] == i) {
+          result[i] += data[j] * B[colrow];
+          break;
+        }
+      }
+    }
+    //upper triangular matrix
     for (int j = row_pointer[i]; j < row_pointer[i + 1]; j++) {
       result[i] += data[j] * B[column[j]];
     }
@@ -1431,7 +1390,6 @@ void dotMatrixVectorCsr(int size, double *data, int* column, int* row_pointer, d
 
 double *femConjugateGradientCsr(femCsrSystem *mySystem) {
   double *B;
-
   double *data = mySystem->data;
   int *column = mySystem->column;
   int *row_pointer = mySystem->row_pointer;
@@ -1461,8 +1419,9 @@ double *femConjugateGradientCsr(femCsrSystem *mySystem) {
   memcpy(search_direction, Residual, sizeof(double) * size);
 
   // Iterate until convergence
-  while (1) {
-
+  int iter = 0;
+  while (1 && iter < 100) {
+    iter++;
     dotMatrixVectorCsr(size, data, column, row_pointer, search_direction, A_search_direction);
     double old_rz_product = dotVectors(size, Residual, Residual);
     double step_size =
@@ -1475,6 +1434,9 @@ double *femConjugateGradientCsr(femCsrSystem *mySystem) {
     // Update residual
     dotScalarVector(size, step_size, A_search_direction, utility);
     substracVector(size, Residual, utility, Residual);
+
+    //printf("iter %d\n", iter);
+    //printf("norm %e\n", vectorNorm(size, Residual));
 
     if (vectorNorm(size, Residual) < TOL) {
       break;

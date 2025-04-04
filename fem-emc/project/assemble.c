@@ -167,18 +167,6 @@ void femElasticityAssembleElementsCsr(femProblemCsr *theProblem) {
   int *column = theSystem->column;
   double *B = theSystem->B;
 
-  for (i = 0; i < theSystem->size; i++) {
-    for (iElem = 0; iElem < theMesh->nElem; iElem++) {
-      for (j = 0; j < nLocal; j++) {
-        map[j] = theMesh->elem[iElem * nLocal + j];
-        mapX[j] = 2 * map[j];
-        mapY[j] = 2 * map[j] + 1;
-        x[j] = theNodes->X[map[j]];
-        y[j] = theNodes->Y[map[j]];
-      }
-    }
-  }
-
   for (iElem = 0; iElem < theMesh->nElem; iElem++) {
     for (j = 0; j < nLocal; j++) {
       map[j] = theMesh->elem[iElem * nLocal + j];
@@ -214,28 +202,30 @@ void femElasticityAssembleElementsCsr(femProblemCsr *theProblem) {
       for (i = 0; i < theSpace->n; i++) {
         for (j = 0; j < theSpace->n; j++) {
           for (int k = row_pointer[mapX[i]]; k < row_pointer[mapX[i] + 1]; k++) {
-            if (column[k] == mapX[j]) {
+            if (column[k] == mapX[j]) { // XX coord
               data[k] +=
-                  (dphidx[i] * a * dphidx[j] + dphidy[i] * c * dphidy[j]) *
-                  jac * weight;
+                  (dphidx[i] * a * dphidx[j] + dphidy[i] * c * dphidy[j]) * jac *
+              weight;
             }
-            if (column[k] == mapY[j]) {
-              data[k] +=
-                  (dphidy[i] * a * dphidy[j] + dphidx[i] * c * dphidx[j]) *
-                  jac * weight;
-            }
+              if (column[k] == mapY[j]) {
+                data[k] +=
+                    (dphidx[i] * b * dphidy[j] + dphidy[i] * c * dphidx[j]) * jac * 
+                weight;
+                break;
+              }
           }
           for (int k = row_pointer[mapY[i]]; k < row_pointer[mapY[i] + 1];
                k++) {
-            if (column[k] == mapX[j]) {
+              if (column[k] == mapX[j]) {
+                data[k] +=
+                    (dphidy[i] * b * dphidx[j] + dphidx[i] * c * dphidy[j]) * jac *
+                weight;
+              }
+            if (column[k] == mapY[j]) { // YY coord
               data[k] +=
-                  (dphidy[i] * b * dphidx[j] + dphidx[i] * c * dphidy[j]) *
-                  jac * weight;
-            }
-            if (column[k] == mapY[j]) {
-              data[k] +=
-                  (dphidy[i] * a * dphidy[j] + dphidx[i] * c * dphidx[j]) *
-                  jac * weight;
+                  (dphidy[i] * a * dphidy[j] + dphidx[i] * c * dphidx[j]) * jac *
+              weight;
+              break;
             }
           }
         }
@@ -335,7 +325,93 @@ double *femElasticitySolveCsr(femProblemCsr *theProblem) {
     }
   }
 
-  //  femFullSystemEliminate(theSystem);
+  //  femCsrSystemEliminate(theSystem);
+  //  femConjugateGradientJacob(theSystem);
+  //  femConjugateGradientCholesky(theSystem);
+  //  femConjugateGradientCsr(theSystem);
+  //
+  for (int i = 0; i < theSystem->size; i++) {
+    theProblem->soluce[i] = theSystem->B[i];
+  }
+
+  return theProblem->soluce;
+}
+
+double *femElasticitySolveCsrDebug(femProblemCsr *theProblem, femProblem *theProblemFull) {
+  femCsrSystem *theSystem = theProblem->systemCsr;
+
+
+  femElasticityAssembleNeumannCsr(theProblem);
+  femElasticityAssembleElementsCsr(theProblem);
+
+  femElasticityAssembleElements(theProblemFull);
+  femElasticityAssembleNeumann(theProblemFull);
+
+  int problemFound = 0;
+
+  for (int i = 0; i < theSystem->size; i++) {
+    if (problemFound == 1) {
+      break;
+    }
+    for (int j = i; j < theSystem->size; j++) {
+      if (problemFound == 1) {
+        break;
+      }
+      int found_column = 0;
+      for (int k = theSystem->row_pointer[i]; k < theSystem->row_pointer[i + 1]; k++) {
+        if (theSystem->column[k] == j) {
+          found_column = 1;
+          if (theSystem->data[k] != theProblemFull->system->A[i][j]) {
+            printf("Problem found\n");
+            printf("i = %d j = %d k = %d\n", i, j, k);
+            printf("data = %f\n", theSystem->data[k]);
+            printf("A = %f\n", theProblemFull->system->A[i][j]);
+            for (int l = theSystem->row_pointer[i]; l < theSystem->row_pointer[i + 1]; l++) {
+              printf("A[%d][%d] = %f ", i, theSystem->column[l], theSystem->data[l]);
+            }
+            printf("\n");
+            for (int l = 0; l < theSystem->size; l++) {
+              if (theProblemFull->system->A[i][l] != 0) {
+              printf("A[%d][%d] = %f ", i, l, theProblemFull->system->A[i][l]);
+              }
+            }
+            printf("\n");
+            problemFound = 1;
+          }
+          break;
+        }
+      }
+        if (found_column == 0 && theProblemFull->system->A[i][j] != 0) {
+          printf("Problem found missing\n");
+          printf("i = %d j = %d \n", i, j);
+          printf("A = %f\n", theProblemFull->system->A[i][j]);
+          for (int l = theSystem->row_pointer[i]; l < theSystem->row_pointer[i + 1]; l++) {
+            printf("A[%d][%d] = %f ", i, theSystem->column[l], theSystem->data[l]);
+          }
+          printf("\n");
+          for (int l = 0; l < theSystem->size; l++) {
+            if (theProblemFull->system->A[i][l] != 0) {
+              printf("A[%d][%d] = %f ", i, l, theProblemFull->system->A[i][l]);
+            }
+          }
+          printf("\n");
+          problemFound = 1;
+        }
+    }
+  }
+
+  if (problemFound == 0) {
+    printf("No problem found\n");
+  }
+
+  int *theConstrainedNodes = theProblem->constrainedNodes;
+  for (int i = 0; i < theSystem->size; i++) {
+    if (theConstrainedNodes[i] != -1) {
+      double value = theProblem->conditions[theConstrainedNodes[i]]->value;
+      femCsrSystemConstrain(theSystem, i, value);
+    }
+  }
+  
   //  femConjugateGradientJacob(theSystem);
   //  femConjugateGradientCholesky(theSystem);
   femConjugateGradientCsr(theSystem);

@@ -68,7 +68,6 @@ Ci dessous la structure du projet pour un programme qui à déjà tourner et ave
 │   ├── fem.h
 │   └── solve.c                 <- the problem definition and solver
 ├── README.md                   <- you are here
-├── ReadMe.txt                  <- required by instructions
 ├── _run.sh
 └── utils
     ├── fixMesh.py              <- python program to fix meshes from gmsh
@@ -179,5 +178,8 @@ Pour ce projet, plusieurs fenêtres sont créées, le code de ces dernières pro
 ```sh
 python3 utils/fixMesh.py
 ```
-
+- Il existe aussi un programme python pour visualiser les resultats avec son propre facteur de déformations, il suffit de run
+```sh
+python3 utils/plot.py
+```
 - Pour éviter le code inutile, les fonctions non-utilisées des fichiers fem.c et fem.h ont été retirée

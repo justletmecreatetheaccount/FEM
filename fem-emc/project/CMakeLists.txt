@@ -16,6 +16,7 @@ add_compile_options(
     -Wshadow 
     -Wno-unknown-pragmas 
     -Wno-unused-parameter
+    -Wunused-function
     -O3
 )
 

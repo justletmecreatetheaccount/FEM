@@ -80,7 +80,7 @@ Ci dessous la structure du projet pour un programme qui à déjà tourner et ave
 
 > ⚠️ **Attention**  
 
-Pour initialiser le projet, il faut créer les dossiers de build dans `./build/` et `./genmesh/build/`.
+Pour initialiser le projet, il faut créer les dossiers de build dans `build/` et `genmesh/build/`.
 
 Si vous êtes sur Linux, vous pouvez lancer `./_init.sh` (qui est l'équivalent) après avoir fait 
 `chmod +x _init.sh` (vous pouvez le faire pour tout les fichiers .sh)
@@ -89,7 +89,7 @@ Si vous êtes sur Linux, vous pouvez lancer `./_init.sh` (qui est l'équivalent)
 
 ### Générer un maillage
 
-Pour générer un maillage il faut d'abords naviguer dans `./genmesh/build/` ensuite executer
+Pour générer un maillage il faut d'abords naviguer dans `genmesh/build/` ensuite executer
 ```sh
 cmake ..
 ```
@@ -115,17 +115,19 @@ Si vous êtes sur Linux, vous pouvez lancer `./_mesh.sh` pour générer le maill
 
 Les paramètres du problème sont définis dans `main.h` par
 ```
+#define _FACTOR (1e5)
 #define _DISPLACEMENT (2.0 * 10e-7)
 #define _E (170.0 * 10e9)
 #define _NU (0.29)
 #define _RHO (7.5 * 10e3)
 #define _G (9.81)
 ```
-Ou `_DISPLACEMENT` est le deplacement par compression des bords du disque et les autres constantes associées sont les paramètres physiques trouver sur https://www.makeitfrom.com/material-properties/SAE-ASTM-Grade-G3500-F10007-Grey-Cast-Iron et https://en.wikipedia.org/wiki/Young%27s_modulus#Temperature_dependence
+Ou `_DISPLACEMENT` est le deplacement par compression des bords du disque et les autres constantes associées sont les paramètres physiques trouver sur https://www.makeitfrom.com/material-properties/SAE-ASTM-Grade-G3500-F10007-Grey-Cast-Iron et https://en.wikipedia.org/wiki/Young%27s_modulus#Temperature_dependence et `_FACTOR` est le facteur de féformation utilisé pour amplifier les résultats dans les plots, si celui-ci est changé, faites attention a également le changer dans `utils/plot.py` pour que le plot python corresponde a la figure openGL
+
 
 On peut donc facilement les changer pour adapter l'analyse a un autre matériaux par exemple un acier froid comparé a un acier chaud.
 
-Pour résoudre le problème, et afficher les déformations subies, il faut naviguer dans `./build/`
+Pour résoudre le problème, et afficher les déformations subies, il faut naviguer dans `build/`
 puis exécuter
 ```sh
 cmake ..
@@ -159,12 +161,12 @@ Cette section est pour détaillé les parties de code plus intéréssantes à vo
 
 ### Génération de Mesh
 
-Pour générer le mesh, le code utiliser est inspiré du devoir 2 et 6, avec cependant une geométrie différente. La géométrie est définie dans `./genmesh/src/fem.c` par la fonction `void geoMeshGenerate()`, avec la fonction  `double geoSize(double x, double y)` associée au problème
+Pour générer le mesh, le code utiliser est inspiré du devoir 2 et 6, avec cependant une geométrie différente. La géométrie est définie dans `genmesh/src/fem.c` par la fonction `void geoMeshGenerate()`, avec la fonction  `double geoSize(double x, double y)` associée au problème
 
 ### Solveur
 
-Pour résoudre le problème, le code provient en grosse partie du devoir 6 et du template fournis pour le concours avec quelques ajustements. Les conditions frontières sont définies dans `./project/solve.c`
-tandis que le solveur est défini dans `./project/assemble.c` et est appelé par `double *femElasticitySolve(femProblem *theProblem)`
+Pour résoudre le problème, le code provient en grosse partie du devoir 6 et du template fournis pour le concours avec quelques ajustements. Les conditions frontières sont définies dans `project/solve.c`
+tandis que le solveur est défini dans `project/assemble.c` et est appelé par `double *femElasticitySolve(femProblem *theProblem)`
 
 ### Plots
 

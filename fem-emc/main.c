@@ -31,9 +31,9 @@ int main(int argc, char** argv){
 
     // plot
     femNodes *theNodes = theGeometry->theNodes;
-    double maxDeformation = 1e5;
+    double maxDeformation = _FACTOR;
     double deformationFactor = 0.0;
-    double deformationStep = 1e4;
+    double deformationStep = maxDeformation/10.0;
     double prev = 0;
     double *normDisplacement = malloc(theNodes->nNodes * sizeof(double));
     double *forcesX = malloc(theNodes->nNodes * sizeof(double));

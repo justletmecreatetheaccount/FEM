@@ -83,7 +83,7 @@ if __name__ == "__main__":
     print("\033[34m[INFO]Plotting results")
     uv = np.loadtxt("data/UV.txt", skiprows=1, delimiter=",")
     uv_norm = np.linalg.norm(uv, axis=1)
-    factor = 5e4
+    factor = 1e5
     
     cb = mesh.plotfield(uv_norm, uv*factor, cmap="turbo")
     plt.colorbar(cb)

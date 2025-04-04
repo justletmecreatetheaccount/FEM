@@ -81,6 +81,17 @@ typedef struct {
 
 typedef struct {
   double *B;
+  double *data;
+  int *column;
+  int *row_pointer; // index of the first element of each row in the column and data array
+  double *dataL;
+  int *columnL;
+  int *row_pointerL; // same but for incomplete Cholesky
+  int size;
+} femCsrSystem;
+
+typedef struct {
+  double *B;
   double **A;
   double **L;
   int size;
@@ -108,6 +119,23 @@ typedef struct {
   femIntegration *ruleEdge;
   femFullSystem *system;
 } femProblem;
+
+typedef struct {
+  double E, nu, rho, g;
+  double A, B, C;
+  int planarStrainStress;
+  int nBoundaryConditions;
+  femBoundaryCondition **conditions;
+  int *constrainedNodes;
+  double *soluce;
+  double *residuals;
+  femGeo *geometry;
+  femDiscrete *space;
+  femIntegration *rule;
+  femDiscrete *spaceEdge;
+  femIntegration *ruleEdge;
+  femCsrSystem *systemCsr;
+} femProblemCsr;
 
 void geoInitialize();
 femGeo *geoGetGeometry();
@@ -169,5 +197,23 @@ void femError(char *text, int line, char *file);
 void femErrorScan(int test, int line, char *file);
 void femErrorGmsh(int test, int line, char *file);
 void femWarning(char *text, int line, char *file);
+
+// DAT CSR
+
+void femCsrSystemFree(femCsrSystem *theSystem);
+femCsrSystem *femCsrSystemCreate(int size, femGeo *theGeo);
+void femCsrSystemAlloc(femCsrSystem *mySystem, femGeo *theGeo, int size);
+void femCsrSystemInit(femCsrSystem *mySystem, femGeo *theGeo);
+void femCsrSystemConstrain(femCsrSystem *mySystem, int myNode, double value);
+void femElasticityAddBoundaryConditionCsr(femProblemCsr *theProblem, char *nameDomain,
+                                       femBoundaryType type, double value);
+femProblemCsr *femElasticityCreateCsr(femGeo *theGeo, double E, double nu, double rho,
+                                double g, femElasticCase iCase);
+void femElasticityFreeCsr(femProblemCsr *theProblem);
+void femElasticityAssembleElementsCsr(femProblemCsr *theProblem);
+void femElasticityAssembleNeumannCsr(femProblemCsr *theProblem);
+double *femElasticitySolveCsr(femProblemCsr *theProblem);
+double *femConjugateGradientCsr(femCsrSystem *mySystem);
+
 
 #endif

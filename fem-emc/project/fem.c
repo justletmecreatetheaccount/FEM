@@ -8,7 +8,9 @@
  */
 
 #include "fem.h"
+#include <bits/pthreadtypes.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 femGeo theGeometry;
 
@@ -1119,4 +1121,373 @@ void femWarning(char *text, int line, char *file) {
   printf("\n  Warning in %s at line %d : \n  %s\n", file, line, text);
   printf("---------------------------------------------------------------------"
          " Yek Yek !! \n\n");
+}
+
+
+// CSR PART OF THE CODE
+
+void femCsrSystemFree(femCsrSystem *theSystem) {
+  free(theSystem->data);
+  free(theSystem->column);
+  free(theSystem->row_pointer);
+  free(theSystem->B);
+  free(theSystem);
+}
+
+femCsrSystem *femCsrSystemCreate(int size, femGeo *theGeo) {
+  femCsrSystem *theSystem = malloc(sizeof(femCsrSystem));
+  femCsrSystemAlloc(theSystem, theGeo,size);
+  femCsrSystemInit(theSystem, theGeo);
+
+  return theSystem;
+}
+
+void femCsrSystemAlloc(femCsrSystem *mySystem, femGeo *theGeo, int size) {
+  int number_individual_links = (theGeo->theElements->nElem * theGeo->theElements->nLocalNode - theGeo->theEdges->nElem) / 2;
+  mySystem->data = malloc(sizeof(double) * (size + 4 * number_individual_links)); 
+  //size for the diagonal, 4 bc eatch entry is a 2x2 matrix and number_individual_links not times 2 because we consider only one half
+  mySystem->column = malloc(sizeof(int) * (size + 4 * number_individual_links));
+  mySystem->row_pointer = malloc(sizeof(int) * (size + 1));
+  //mySystem->row_pointer[0] = 0;
+  //mySystem->row_pointer[size] = size + 4 * number_individual_links; // init here to avoid redoing the math for th number of individual links
+  mySystem->B = malloc(sizeof(double) * size);
+  mySystem->size = size;
+}
+
+void femCsrSystemInit(femCsrSystem *mySystem, femGeo *theGeo) {
+  int size = mySystem->size;
+  int nElem = theGeo->theElements->nElem;
+  int nlocal = theGeo->theElements->nLocalNode;
+  int buffer_size = size; // size chosen arbitrarily
+  int* row_pointer = mySystem->row_pointer;
+  int* column = mySystem->column;
+  int* elem = theGeo->theElements->elem;
+  // will store all the other nodes already linked to the node
+  int* buffer = malloc( buffer_size * sizeof(int)); 
+  int found_matches = 0;
+  for (int i = 0; i < size; i++) {
+    for (int j = 0; j < nElem; j++) {
+      for (int k = 0; k < nlocal; k++) {
+        int node = elem[j * nlocal + k];
+        if (node < i) {
+          // already done
+          continue;;
+        }
+        
+        if (node == i) {
+          // Found Match
+          elem[j * nlocal + k] = 0;
+          // Need to check if match already done
+          if (k == nlocal - 1) { // end
+            int nodenext = elem[j * nlocal];
+            int nodeprev = elem[j * nlocal + k - 1];
+            int foundnext = 0;
+            int foundprev = 0;
+            for (int l = 0; l < found_matches; l++) {
+              if (buffer[l] == nodeprev) {
+                // already done
+                foundprev = 1;
+              }
+              if (buffer[l] == nodenext) {
+                // already done
+                foundnext = 1;
+              }
+            }
+            if (foundnext == 0) {
+              // not done
+              buffer[found_matches] = nodenext;
+              found_matches++;
+            }
+            if (foundprev == 0) {
+              // not done
+              buffer[found_matches] = nodeprev;
+              found_matches++;
+            }
+          } else if (k == 0) { // first
+            int nodenext = elem[j * nlocal + k + 1];
+            int nodeprev = elem[j * nlocal + nlocal - 1];
+            int foundnext = 0;
+            int foundprev = 0;
+            for (int l = 0; l < found_matches; l++) {
+              if (buffer[l] == nodeprev) {
+                // already done
+                foundprev = 1;
+              }
+              if (buffer[l] == nodenext) {
+                // already done
+                foundnext = 1;
+              }
+            }
+            if (foundnext == 0) {
+              // not done
+              buffer[found_matches] = nodenext;
+              found_matches++;
+            }
+            if (foundprev == 0) {
+              // not done
+              buffer[found_matches] = nodeprev;
+              found_matches++;
+            }
+          } else { // middle
+            int nodenext = elem[j * nlocal + k + 1];
+            int nodeprev = elem[j * nlocal + k - 1];
+            int foundnext = 0;
+            int foundprev = 0;
+            for (int l = 0; l < found_matches; l++) {
+              if (buffer[l] == nodeprev) {
+                // already done
+                foundprev = 1;
+              }
+              if (buffer[l] == nodenext) {
+                // already done
+                foundnext = 1;
+              }
+            }
+            if (foundnext == 0) {
+              // not done
+              buffer[found_matches] = nodenext;
+              found_matches++;
+            }
+            if (foundprev == 0) {
+              // not done
+              buffer[found_matches] = nodeprev;
+              found_matches++;
+            }
+          }
+        }
+
+
+      }
+    }
+    printf("found matches %d\n", found_matches);
+    row_pointer[i + 1] = found_matches + row_pointer[i];
+    printf("row_pointer[%d] = %d\n", i + 1, row_pointer[i + 1]);
+    printf("total size %d\n", (theGeo->theElements->nElem * theGeo->theElements->nLocalNode - theGeo->theEdges->nElem) / 2);
+    for (int j = 0; j < found_matches; j++) {
+      column[row_pointer[i] + j] = buffer[j];
+      mySystem->data[row_pointer[i] + j] = 0;
+    }
+    for (int j = 0; j < buffer_size; j++) { // not sorted but idcare
+      buffer[j] = 0;
+    }
+    found_matches = 0;
+  }
+
+  for (int i = 0; i < size * (size + 1); i++)
+    mySystem->B[i] = 0;
+
+  free(buffer);
+  if (mySystem->row_pointer[size] != (theGeo->theElements->nElem * theGeo->theElements->nLocalNode - theGeo->theEdges->nElem) / 2) {
+    printf("scream"); // fucking debugger
+  }
+}
+
+void femElasticityAddBoundaryConditionCsr(femProblemCsr *theProblem, char *nameDomain,
+                                       femBoundaryType type, double value) {
+  int iDomain = geoGetDomain(nameDomain);
+  if (iDomain == -1)
+    Error("Undefined domain :-(");
+
+  femBoundaryCondition *theBoundary = malloc(sizeof(femBoundaryCondition));
+  theBoundary->domain = theProblem->geometry->theDomains[iDomain];
+  theBoundary->value = value;
+  theBoundary->type = type;
+  theProblem->nBoundaryConditions++;
+  int size = theProblem->nBoundaryConditions;
+
+  if (theProblem->conditions == NULL)
+    theProblem->conditions = malloc(size * sizeof(femBoundaryCondition *));
+  else
+    theProblem->conditions =
+        realloc(theProblem->conditions, size * sizeof(femBoundaryCondition *));
+  theProblem->conditions[size - 1] = theBoundary;
+
+  int shift = -1;
+  if (type == DIRICHLET_X)
+    shift = 0;
+  if (type == DIRICHLET_Y)
+    shift = 1;
+  if (shift == -1)
+    return;
+  int *elem = theBoundary->domain->elem;
+  int nElem = theBoundary->domain->nElem;
+  for (int e = 0; e < nElem; e++) {
+    for (int i = 0; i < 2; i++) {
+      int node = theBoundary->domain->mesh->elem[2 * elem[e] + i];
+      theProblem->constrainedNodes[2 * node + shift] = size - 1;
+    }
+  }
+}
+
+void femCsrSystemConstrain(femCsrSystem *mySystem, int myNode,
+                            double myValue) {
+  double *data, *B;
+  int i, size, *column, *row_pointer;
+
+  data = mySystem->data;
+  column = mySystem->column;
+  row_pointer = mySystem->row_pointer;
+  B = mySystem->B;
+  size = mySystem->size;
+
+  for (i = 0; i < size; i++) {
+    int row_start = row_pointer[i];
+    int row_end = row_pointer[i + 1];
+    for (int j = row_start; j < row_end; j++) {
+      if (column[j] == myNode) {
+        // Found the column index for the current row
+        B[i] -= myValue * data[j];
+        data[j] = 0;
+        break;
+      }
+    }
+  }
+
+  for (i = row_pointer[myNode]; i < row_pointer[myNode + 1]; i++) {
+    data[i] = 0;
+    if (column[i] == myNode) {
+      // Found the column index for the current row
+      data[i] = 1;
+      break;
+    }
+  }
+
+  B[myNode] = myValue;
+}
+
+femProblemCsr *femElasticityCreateCsr(femGeo *theGeo, double E, double nu, double rho,
+                                double g, femElasticCase iCase) {
+  femProblemCsr *theProblem = malloc(sizeof(femProblemCsr));
+  theProblem->E = E;
+  theProblem->nu = nu;
+  theProblem->g = g;
+  theProblem->rho = rho;
+
+  if (iCase == PLANAR_STRESS) {
+    theProblem->A = E / (1 - nu * nu);
+    theProblem->B = E * nu / (1 - nu * nu);
+    theProblem->C = E / (2 * (1 + nu));
+  } else if (iCase == PLANAR_STRAIN || iCase == AXISYM) {
+    theProblem->A = E * (1 - nu) / ((1 + nu) * (1 - 2 * nu));
+    theProblem->B = E * nu / ((1 + nu) * (1 - 2 * nu));
+    theProblem->C = E / (2 * (1 + nu));
+  }
+
+  theProblem->planarStrainStress = iCase;
+  theProblem->nBoundaryConditions = 0;
+  theProblem->conditions = NULL;
+
+  int size = 2 * theGeo->theNodes->nNodes;
+  theProblem->constrainedNodes = malloc(size * sizeof(int));
+  theProblem->soluce = malloc(size * sizeof(double));
+  theProblem->residuals = malloc(size * sizeof(double));
+  for (int i = 0; i < size; i++) {
+    theProblem->constrainedNodes[i] = -1;
+    theProblem->soluce[i] = 0.0;
+    theProblem->residuals[i] = 0.0;
+  }
+
+  theProblem->geometry = theGeo;
+  if (theGeo->theElements->nLocalNode == 3) {
+    theProblem->space = femDiscreteCreate(3, FEM_TRIANGLE);
+    theProblem->rule = femIntegrationCreate(3, FEM_TRIANGLE);
+  }
+  if (theGeo->theElements->nLocalNode == 4) {
+    theProblem->space = femDiscreteCreate(4, FEM_QUAD);
+    theProblem->rule = femIntegrationCreate(4, FEM_QUAD);
+  }
+  theProblem->spaceEdge = femDiscreteCreate(2, FEM_EDGE);
+  theProblem->ruleEdge = femIntegrationCreate(2, FEM_EDGE);
+  theProblem->systemCsr = femCsrSystemCreate(size, theGeo);
+
+  // femDiscretePrint(theProblem->space);
+  // femDiscretePrint(theProblem->spaceEdge);
+
+  return theProblem;
+}
+
+void femElasticityFreeCsr(femProblemCsr *theProblem) {
+  femCsrSystemFree(theProblem->systemCsr);
+  femIntegrationFree(theProblem->rule);
+  femDiscreteFree(theProblem->space);
+  femIntegrationFree(theProblem->ruleEdge);
+  femDiscreteFree(theProblem->spaceEdge);
+  free(theProblem->conditions);
+  free(theProblem->constrainedNodes);
+  free(theProblem->soluce);
+  free(theProblem->residuals);
+  free(theProblem);
+}
+
+void dotMatrixVectorCsr(int size, double *data, int* column, int* row_pointer, double *B, double *result) {
+
+  for (int i = 0; i < size; i++) {
+    result[i] = 0;
+    for (int j = row_pointer[i]; j < row_pointer[i + 1]; j++) {
+      result[i] += data[j] * B[column[j]];
+    }
+  }
+}
+
+double *femConjugateGradientCsr(femCsrSystem *mySystem) {
+  double *B;
+
+  double *data = mySystem->data;
+  int *column = mySystem->column;
+  int *row_pointer = mySystem->row_pointer;
+  B = mySystem->B;
+  int size = mySystem->size;
+  double *Residual = malloc(sizeof(double) * size);
+  double *search_direction = malloc(sizeof(double) * size);
+  double *A_search_direction = malloc(sizeof(double) * size);
+  double *utility = malloc(sizeof(double) * size);
+
+  // Initialize residual vector
+  dotMatrixVectorCsr(size, data, column, row_pointer, utility, Residual);
+  substracVector(size, B, Residual, Residual);
+
+  // Skip all if utility right guess
+  if (vectorNorm(size, Residual) < TOL) {
+    memcpy(B, utility, sizeof(double) * size);
+    free(Residual);
+    free(search_direction);
+    free(A_search_direction);
+    free(utility);
+    return B;
+  }
+  // Initialize solution vector
+  memcpy(B, utility, sizeof(double) * size);
+  // Initialize search direction vector
+  memcpy(search_direction, Residual, sizeof(double) * size);
+
+  // Iterate until convergence
+  while (1) {
+
+    dotMatrixVectorCsr(size, data, column, row_pointer, search_direction, A_search_direction);
+    double old_rz_product = dotVectors(size, Residual, Residual);
+    double step_size =
+        old_rz_product / dotVectors(size, search_direction, A_search_direction);
+
+    // Update solution
+    dotScalarVector(size, step_size, search_direction, utility);
+    addVector(size, B, utility, B);
+
+    // Update residual
+    dotScalarVector(size, step_size, A_search_direction, utility);
+    substracVector(size, Residual, utility, Residual);
+
+    if (vectorNorm(size, Residual) < TOL) {
+      break;
+    }
+
+    // Update search direction
+    double beta = dotVectors(size, Residual, Residual) / old_rz_product;
+    dotScalarVector(size, beta, search_direction, utility);
+    addVector(size, Residual, utility, search_direction);
+  }
+  free(Residual);
+  free(search_direction);
+  free(A_search_direction);
+  free(utility);
+  return B;
 }

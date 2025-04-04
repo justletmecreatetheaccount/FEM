@@ -213,7 +213,7 @@ void femElasticityFreeCsr(femProblemCsr *theProblem);
 void femElasticityAssembleElementsCsr(femProblemCsr *theProblem);
 void femElasticityAssembleNeumannCsr(femProblemCsr *theProblem);
 double *femElasticitySolveCsr(femProblemCsr *theProblem);
-double *femElasticitySolveCsrDebug(femProblemCsr *theProblem, femProblem *theProblemFull);
+double *femElasticitySolveCsr(femProblemCsr *theProblem);
 double *femConjugateGradientCsr(femCsrSystem *mySystem);
 
 #endif

@@ -33,14 +33,14 @@ int main(int argc, char** argv){
 
     // ====== READY, SET... ========
     for (int i = 0; i < WARMUP; i++){
-        elasticity_solve(meshfile, outfile, E, nu, rho, g);
+        elasticity_solve_csr(meshfile, outfile, E, nu, rho, g);
     }
     //printf("Warmup runs done, now benchmarking\n");
 
     // =========  GO ! =============
     for (int i = 0; i < NRUNS; i++){
         timespec_get(&t0, TIME_UTC);
-        elasticity_solve(meshfile, outfile, E, nu, rho, g);
+        elasticity_solve_csr(meshfile, outfile, E, nu, rho, g);
         timespec_get(&t1, TIME_UTC);
 
         // Do not print the value here to not incur IO overhead

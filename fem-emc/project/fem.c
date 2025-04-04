@@ -1227,7 +1227,6 @@ void femCsrSystemInit(femCsrSystem *mySystem, femGeo *theGeo) {
     printf("row_pointer[%d] = %d\n", size, mySystem->row_pointer[size]);
     printf("alocated size = %d\n", (3 * size / 2 + 4 * (links_per_element * theGeo->theElements->nElem - number_internal_links)));
   }
-  printf("Done\n");
 }
 
 
@@ -1279,17 +1278,21 @@ void femCsrSystemConstrain(femCsrSystem *mySystem, int myNode,
   B = mySystem->B;
   size = mySystem->size;
 
-  for (i = 0; i < size; i++) {
-    int row_start = row_pointer[i];
-    int row_end = row_pointer[i + 1];
-    for (int j = row_start; j < row_end; j++) {
+  // upper triangle
+  for (i = 0; i < myNode; i++) {
+    for (int j = row_pointer[i]; j < row_pointer[i + 1]; j++) {
       if (column[j] == myNode) {
         // Found the column index for the current row
         B[i] -= myValue * data[j];
         data[j] = 0;
-        break;
+        break;;
       }
     }
+  }
+
+  // lower triangle
+  for (int j = row_pointer[myNode]; j < row_pointer[myNode + 1]; j++) {
+    B[column[j]] -= myValue * data[j];
   }
 
   for (i = row_pointer[myNode]; i < row_pointer[myNode + 1]; i++) {
@@ -1297,7 +1300,7 @@ void femCsrSystemConstrain(femCsrSystem *mySystem, int myNode,
     if (column[i] == myNode) {
       // Found the column index for the current row
       data[i] = 1;
-      break;
+      continue;
     }
   }
 
@@ -1369,22 +1372,20 @@ void femElasticityFreeCsr(femProblemCsr *theProblem) {
 }
 
 void dotMatrixVectorCsr(int size, double *data, int* column, int* row_pointer, double *B, double *result) {
-  int times = 0;
   for (int i = 0; i < size; i++) {
     result[i] = 0;
-    //lower triangular matrix equiv
-    for (int colrow = 0; colrow < i; colrow++) {
-      for (int j = row_pointer[colrow]; j < row_pointer[colrow + 1]; j++) {
-        if (column[j] == i) {
-          result[i] += data[j] * B[colrow];
-          break;
-        }
-      }
-    }
-    //upper triangular matrix
-    for (int j = row_pointer[i]; j < row_pointer[i + 1]; j++) {
+  }
+
+  for (int i = 0; i < size; i++) {
+    for (int j = row_pointer[i] + 1; j < row_pointer[i + 1]; j++) {
       result[i] += data[j] * B[column[j]];
+      result[column[j]] += data[j] * B[i];
     }
+  }
+
+  // diagonal
+  for (int i = 0; i < size; i++) {
+    result[i] += data[row_pointer[i]] * B[i];
   }
 }
 
@@ -1399,6 +1400,8 @@ double *femConjugateGradientCsr(femCsrSystem *mySystem) {
   double *search_direction = malloc(sizeof(double) * size);
   double *A_search_direction = malloc(sizeof(double) * size);
   double *utility = malloc(sizeof(double) * size);
+
+  double *testing_array = malloc(sizeof(double) * size);
 
   // Initialize residual vector
   dotMatrixVectorCsr(size, data, column, row_pointer, utility, Residual);
@@ -1419,10 +1422,9 @@ double *femConjugateGradientCsr(femCsrSystem *mySystem) {
   memcpy(search_direction, Residual, sizeof(double) * size);
 
   // Iterate until convergence
-  int iter = 0;
-  while (1 && iter < 100) {
-    iter++;
+  while (1) {
     dotMatrixVectorCsr(size, data, column, row_pointer, search_direction, A_search_direction);
+
     double old_rz_product = dotVectors(size, Residual, Residual);
     double step_size =
         old_rz_product / dotVectors(size, search_direction, A_search_direction);
@@ -1434,9 +1436,6 @@ double *femConjugateGradientCsr(femCsrSystem *mySystem) {
     // Update residual
     dotScalarVector(size, step_size, A_search_direction, utility);
     substracVector(size, Residual, utility, Residual);
-
-    //printf("iter %d\n", iter);
-    //printf("norm %e\n", vectorNorm(size, Residual));
 
     if (vectorNorm(size, Residual) < TOL) {
       break;
@@ -1451,5 +1450,6 @@ double *femConjugateGradientCsr(femCsrSystem *mySystem) {
   free(search_direction);
   free(A_search_direction);
   free(utility);
+  free(testing_array);
   return B;
 }

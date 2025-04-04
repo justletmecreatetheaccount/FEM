@@ -174,7 +174,11 @@ Pour générer le mesh, le code utiliser est inspiré du devoir 2 et 6, avec cep
 
 ### Solveur
 
-Pour résoudre le problème, le code provient en grosse partie du devoir 6 et du template fournis pour le concours avec quelques ajustements. Les conditions frontières sont définies dans `project/solve.c`
+Pour résoudre le problème il y a deux options, soit le stockage de la stiffness matrix en matrice creuse, le code provient en grosse partie du devoir 6 et du template fournis pour le concours avec quelques ajustements.
+Soit le stockage en compressed sparse row, les fonctions adoubées d'un csr sont fonctionnelement les exactes répliques de leurs contreparties "normales" si ce n'est qu'elles peuvent intéragir avec des matrices CSR.
+Vous remarquerez aussi l'ajout d'un solver par Méthode du gradient conjugué avec ou sans préconditionnement.
+Les modifications se trouvent dans fem.c.
+Les conditions frontières sont définies dans `project/solve.c`
 tandis que le solveur est défini dans `project/assemble.c` et est appelé par `double *femElasticitySolve(femProblem *theProblem)`
 
 ### Plots
@@ -192,6 +196,6 @@ python3 utils/fixMesh.py
 ```sh
 python3 utils/plot.py
 ```
-- Pour éviter le code inutile, les fonctions non-utilisées des fichiers fem.c et fem.h ont été retirée
+- Pour éviter le code inutile, les fonctions non-utilisées des fichiers fem.c et fem.h ont été retirées
 
 - Tout le code a été testé sur Linux mais pas MacOs ou Windows si des erreurs de linkage arrive, il va peut être falloir trifouiller les CMakeLists, même si ils ont été faits pour ne pas que cela arrive

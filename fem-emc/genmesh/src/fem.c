@@ -194,7 +194,7 @@ void geoMeshWrite(const char *filename)
     fprintf(file, "Number of nodes %d \n", theNodes->nNodes);
     for (int i = 0; i < theNodes->nNodes; i++)
     {
-        fprintf(file, "%6d : %14.7e %14.7e \n", i, theNodes->X[i], theNodes->Y[i]);
+        fprintf(file, "%6d : %14.7e %14.7e \n", i, theNodes->X[i] / 100, theNodes->Y[i] / 100);
     }
 
     femMesh *theEdges = theGeometry.theEdges;

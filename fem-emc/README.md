@@ -175,14 +175,15 @@ Pour générer le mesh, le code utiliser est inspiré du devoir 2 et 6, avec cep
 ### Solveur
 
 Pour résoudre le problème il y a deux options, soit le stockage de la stiffness matrix en matrice creuse, le code provient en grosse partie du devoir 6 et du template fournis pour le concours avec quelques ajustements.
+
 Soit le stockage en compressed sparse row, les fonctions adoubées d'un csr sont fonctionnelement les exactes répliques de leurs contreparties "normales" si ce n'est qu'elles peuvent intéragir avec des matrices CSR.
+
 Vous remarquerez aussi l'ajout d'un solveur par Méthode du gradient conjugué avec ou sans préconditionnement.
+
 Les conditions frontières sont définies dans `project/solve.c`
-tandis que les fonctions qui assemblent le systéme sont définies dans `project/assemble.c` et les solveurs à proprement parler ont étés rajoutés à `fem.c`
+tandis que les fonctions qui assemblent le systéme sont définies dans `project/assemble.c` et les solveurs à proprement parler ont étés rajoutés à `project/fem.c`
 
-### Plots
-
-Pour ce projet, plusieurs fenêtres sont créées, le code de ces dernières provient des devoirs et a été ajusté pour le probleme et les prérequis
+De manière générale on peut voir un gain en performance de 60 voir mieux dans certains cas
 
 
 ## Notes générales
@@ -191,10 +192,18 @@ Pour ce projet, plusieurs fenêtres sont créées, le code de ces dernières pro
 ```sh
 python3 utils/fixMesh.py
 ```
-- Il existe aussi un programme python pour visualiser les resultats avec son propre facteur de déformations, il suffit de run
+- Il existe aussi un programme python pour visualiser les resultats du gradient conjugué dans `data/UV_grad.txt` avec son propre facteur de déformations, il suffit de run
 ```sh
 python3 utils/plot.py
 ```
+- Il existe aussi un programme python pour valider les resultats du gradient conjugué comparé à l'élimination gaussienne, il suffit de run
+```sh
+python3 utils/validate.py
+```
+dans la configuration actuelle, le gradient conjugué a une erreur relative de 5.507e-13
+
 - Pour éviter le code inutile, les fonctions non-utilisées des fichiers fem.c et fem.h ont été retirées
 
 - Tout le code a été testé sur Linux mais pas MacOs ou Windows si des erreurs de linkage arrive, il va peut être falloir trifouiller les CMakeLists, même si ils ont été faits pour ne pas que cela arrive
+
+- Lorsque l'on fait tourner l'exécutable solver, l'elimination gaussienne et le gradient conjugué sont appelé avec chacun leur benchmark, si vous souhaitez uniquement le gradient, vous devez commenté tout le code de génération de plot car celui-ci prends ses données de l'élimination gaussienne (bien que les résultats avec le gradient conjugué soient les mêmes)

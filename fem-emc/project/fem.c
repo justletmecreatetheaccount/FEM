@@ -440,7 +440,7 @@ double vectorNorm(int size, double *A) {
 void incompleteCholesky(femFullSystem *mySystem) {
   int size = mySystem->size;
   double **A = mySystem->A;
-  double *B = mySystem->B;
+  //double *B = mySystem->B;
   double **L = malloc(sizeof(double *) * size);
   for (int i = 0; i < size; i++) {
     L[i] = malloc(sizeof(double) * size);

@@ -29,10 +29,18 @@ pip install matplotlib
 pip install numpy
 ```
 
-- Cmake <= 3.13 
+- Cmake
 - X11 (Linux)
 - tdm-GCC ou GCC
 - GLFW et OpenGL
+- GMSH
+
+### GMSH
+Pour utiliser correctement gmsh, il faut télécharger la [version](https://gmsh.info/) correspondant à votre OS et la mettre dans `genmesh/gmsh` pour avoir 
+`genmesh/gmsh/gmsh-4.13.1-.../...`
+
+En cas de problème de linkage avec gmsh, veuillez vous référrez aux CMakeLists.txt ou le chemin utilisé est specifier. C'est primordial de bien installer gmsh, sans ça le programme de génération de maillage ne pourra pas fonctionner
+
 
 ### Structure
 
@@ -115,13 +123,15 @@ Si vous êtes sur Linux, vous pouvez lancer `./_mesh.sh` pour générer le maill
 Les paramètres du problème sont définis dans `main.h` par
 ```
 #define _FACTOR (1e5)
-#define _DISPLACEMENT (2.0 * 10e-7)
-#define _E (170.0 * 10e9)
+#define _DISPLACEMENT (2.0 * 1e-6)
+#define _E (170.0 * 1e9)
 #define _NU (0.29)
-#define _RHO (7.5 * 10e3)
+#define _RHO (7.5 * 1e3)
 #define _G (9.81)
 ```
-Ou `_DISPLACEMENT` est le deplacement par compression des bords du disque et les autres constantes associées sont les paramètres physiques trouver sur https://www.makeitfrom.com/material-properties/SAE-ASTM-Grade-G3500-F10007-Grey-Cast-Iron et https://en.wikipedia.org/wiki/Young%27s_modulus#Temperature_dependence et `_FACTOR` est le facteur de féformation utilisé pour amplifier les résultats dans les plots, si celui-ci est changé, faites attention a également le changer dans `utils/plot.py` pour que le plot python corresponde a la figure openGL
+Ou `_DISPLACEMENT` est le deplacement par compression des bords du disque et les autres constantes associées sont les paramètres physiques trouver sur https://www.makeitfrom.com/material-properties/SAE-ASTM-Grade-G3500-F10007-Grey-Cast-Iron et https://en.wikipedia.org/wiki/Young%27s_modulus#Temperature_dependence 
+
+`_FACTOR` est le facteur de féformation utilisé pour amplifier les résultats dans les plots, si celui-ci est changé, faites attention a également le changer dans `utils/plot.py` pour que le plot python corresponde a la figure openGL
 
 
 On peut donc facilement les changer pour adapter l'analyse a un autre matériaux par exemple un acier froid comparé a un acier chaud.
@@ -183,3 +193,5 @@ python3 utils/fixMesh.py
 python3 utils/plot.py
 ```
 - Pour éviter le code inutile, les fonctions non-utilisées des fichiers fem.c et fem.h ont été retirée
+
+- Tout le code a été testé sur Linux mais pas MacOs ou Windows si des erreurs de linkage arrive, il va peut être falloir trifouiller les CMakeLists, même si ils ont été faits pour ne pas que cela arrive

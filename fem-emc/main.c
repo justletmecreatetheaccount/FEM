@@ -13,15 +13,27 @@ int main(int argc, char** argv){
     // parsing args
     char* meshfile = "../data/mesh.txt";
     char* outfile  = "../data/UV.txt";
+    char* outfile2  = "../data/UV_grad.txt";
     if (argc > 1) meshfile = argv[1];
     if (argc > 2) outfile  = argv[2];
     // small benchmark
+
+        
+    struct timespec t2, t3;
+    timespec_get(&t2, TIME_UTC);
+    elasticity_solve_csr(meshfile, outfile2);
+    timespec_get(&t3, TIME_UTC);
+    double exec_time = (t3.tv_sec - t2.tv_sec)*1.0 + (t3.tv_nsec - t2.tv_nsec)*1e-9;
+    printf("\033[34m[INFO] Code ran in %.4fs for mesh file '%s'with the gradient conjugate solver\033[0m\n",exec_time, meshfile);
     struct timespec t0, t1;
     timespec_get(&t0, TIME_UTC);
     Plot plot = elasticity_solve(meshfile, outfile);
     timespec_get(&t1, TIME_UTC);
-    double exec_time = (t1.tv_sec - t0.tv_sec)*1.0 + (t1.tv_nsec - t0.tv_nsec)*1e-9;
-    printf("\033[34m[INFO] Code ran in %.4fs for mesh file '%s'\033[0m\n",exec_time, meshfile);
+    exec_time = (t1.tv_sec - t0.tv_sec)*1.0 + (t1.tv_nsec - t0.tv_nsec)*1e-9;
+    printf("\033[34m[INFO] Code ran in %.4fs for mesh file '%s' with the base solver\033[0m\n",exec_time, meshfile);
+
+
+
     
     // extracting arrays for the plot
     femProblem* theProblem = plot.theProblem;
@@ -111,5 +123,6 @@ int main(int argc, char** argv){
     free(forcesY);
     femElasticityFree(theProblem);
     geoFinalize(theGeometry);
+    
     return 0;
 }

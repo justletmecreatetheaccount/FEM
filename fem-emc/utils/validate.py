@@ -1,7 +1,7 @@
 import numpy as np
 
-ref_file = "data/UV_ref.txt"
-sol_file = "data/UV.txt"
+ref_file = "data/UV.txt"
+sol_file = "data/UV_grad.txt"
 
 reference = np.loadtxt(ref_file, skiprows=1, delimiter=",")
 solution = np.loadtxt(sol_file, skiprows=1, delimiter=",")

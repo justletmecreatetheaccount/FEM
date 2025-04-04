@@ -20,9 +20,9 @@ void elasticity_solve_csr(const char *meshfile, const char *outfile) {
   } else {
 
     // Boundary conditions are Dirichlet X and Y
-    femElasticityAddBoundaryConditionCsr(theProblem, "Plate left", DIRICHLET_X, 1e-6);
+    femElasticityAddBoundaryConditionCsr(theProblem, "Plate left", DIRICHLET_X, _DISPLACEMENT);
     femElasticityAddBoundaryConditionCsr(theProblem, "Plate right", DIRICHLET_X,
-                                      -1e-6);
+                                      -_DISPLACEMENT);
     femElasticityAddBoundaryConditionCsr(theProblem, "Plate bottom", DIRICHLET_Y,
                                       0.0);
     femElasticityAddBoundaryConditionCsr(theProblem, "Plate bottom", DIRICHLET_X, 0.0);
@@ -31,33 +31,7 @@ void elasticity_solve_csr(const char *meshfile, const char *outfile) {
   // Assemble and solve
 
   double *theSoluce = femElasticitySolveCsr(theProblem);
-  //double* theForces = femElasticityForces(theProblem);
-  double *normDisplacement = malloc(theGeometry->theNodes->nNodes * sizeof(double));
-  //double *forcesX = malloc(theGeometry->theNodes->nNodes * sizeof(double));
-  //double *forcesY = malloc(theGeometry->theNodes->nNodes * sizeof(double));
   
-  // for (int i=0; i<theGeometry->theNodes->nNodes; i++){
-  //     normDisplacement[i] = sqrt(theSoluce[2*i+0]*theSoluce[2*i+0] + 
-  //                                 theSoluce[2*i+1]*theSoluce[2*i+1]);
-  //     forcesX[i] = theForces[2*i+0];
-  //     forcesY[i] = theForces[2*i+1]; }
-
-  double hMin = femMin(normDisplacement,theGeometry->theNodes->nNodes);  
-  double hMax = femMax(normDisplacement,theGeometry->theNodes->nNodes);  
-  printf(" ==== Minimum displacement          : %14.7e [m] \n",hMin);
-  printf(" ==== Maximum displacement          : %14.7e [m] \n",hMax);
-
-//
-//  -5- Calcul de la force globaleresultante
-//
-
-  double theGlobalForce[2] = {0, 0};
-  // for (int i=0; i<theProblem->geometry->theNodes->nNodes; i++) {
-  //     theGlobalForce[0] += theForces[2*i+0];
-  //     theGlobalForce[1] += theForces[2*i+1]; }
-  printf(" ==== Global horizontal force       : %14.7e [N] \n",theGlobalForce[0]);
-  printf(" ==== Global vertical force         : %14.7e [N] \n",theGlobalForce[1]);
-
   // Write out the solution
   int nNodes = theGeometry->theNodes->nNodes;
   femSolutionWrite(nNodes, 2, theSoluce, outfile);

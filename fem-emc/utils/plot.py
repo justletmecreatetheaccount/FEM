@@ -81,7 +81,7 @@ class Mesh:
 if __name__ == "__main__":
     mesh = Mesh("data/mesh.txt")
     print("\033[34m[INFO]Plotting results")
-    uv = np.loadtxt("data/UV.txt", skiprows=1, delimiter=",")
+    uv = np.loadtxt("data/UV_grad.txt", skiprows=1, delimiter=",")
     uv_norm = np.linalg.norm(uv, axis=1)
     factor = 1e5
     

@@ -2,9 +2,6 @@
 
 #include "project/fem.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #define _FACTOR (1e5)
 #define _DISPLACEMENT (2.0 * 1e-6)
@@ -26,6 +23,4 @@ void elasticity_solve_csr(const char *meshfile, const char *outfile);
 
 
 
-#ifdef __cplusplus
-}
-#endif // C++
+

@@ -1107,13 +1107,13 @@ void femElasticityAddBoundaryConditionCsr(femProblemCsr *theProblem, char *nameD
 void femCsrSystemConstrain(femCsrSystem *mySystem, int myNode,
                             double myValue) {
   double *data, *B;
-  int i, size, *column, *row_pointer;
+  int i, *column, *row_pointer;
 
   data = mySystem->data;
   column = mySystem->column;
   row_pointer = mySystem->row_pointer;
   B = mySystem->B;
-  size = mySystem->size;
+
 
   // upper triangle
   for (i = 0; i < myNode; i++) {

@@ -3,13 +3,12 @@
 #include <stdio.h>
 
 
-void elasticity_solve_csr(const char *meshfile, const char *outfile, double E,
-                      double nu, double rho, double g) {
+void elasticity_solve_csr(const char *meshfile, const char *outfile) {
   // Read the mesh and the problem
   femGeo *theGeometry = geoMeshRead(meshfile);
 
   femProblemCsr *theProblem =
-      femElasticityCreateCsr(theGeometry, E, nu, rho, g, PLANAR_STRAIN);
+      femElasticityCreateCsr(theGeometry, _E, _NU, _RHO, _G, PLANAR_STRAIN);
 
   if (!strcmp(meshfile, "../data/mesh_ref.txt")) {
 

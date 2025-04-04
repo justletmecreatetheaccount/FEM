@@ -372,7 +372,7 @@ double *femElasticitySolve(femProblem *theProblem) {
   femFullSystemEliminate(theSystem);
   //  femConjugateGradientJacob(theSystem);
   //  femConjugateGradientCholesky(theSystem);
-  femConjugateGradient(theSystem);
+  //  femConjugateGradient(theSystem);
   //
   for (int i = 0; i < theSystem->size; i++) {
     theProblem->soluce[i] = theSystem->B[i];

@@ -68,12 +68,11 @@ void elasticity_solve_csr(const char *meshfile, const char *outfile, double E,
   geoFinalize(theGeometry);
 }
 
-void elasticity_solve(const char *meshfile, const char *outfile, double E,
-                      double nu, double rho, double g) {
+Plot elasticity_solve(const char *meshfile, const char *outfile) {
   // Read the mesh and the problem
   femGeo *theGeometry = geoMeshRead(meshfile);
   femProblem *theProblem =
-      femElasticityCreate(theGeometry, E, nu, rho, g, PLANAR_STRAIN);
+      femElasticityCreate(theGeometry, _E, _NU, _RHO, _G, PLANAR_STRAIN);
 
   if (!strcmp(meshfile, "../data/mesh_ref.txt")) {
 

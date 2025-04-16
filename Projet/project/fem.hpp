@@ -1,16 +1,22 @@
 #pragma once
-#include "defines.hpp"
+#include <array>
+#include <memory>
+#include <string>
 #include <vector>
 
 namespace fem {
 
-typedef enum { FEM_EDGE = 2, FEM_TRIANGLE = 3, FEM_QUAD = 4 } ElementType;
+typedef enum { FEM_EDGE = 2, FEM_TRIANGLE = 3 } ElementType;
 typedef enum { DIRICHLET_X, DIRICHLET_Y, NEUMANN_X, NEUMANN_Y } BoundaryType;
 typedef enum { PLANAR_STRESS, PLANAR_STRAIN, AXISYM } ElasticCase;
 
 struct Node {
   double x;
   double y;
+
+public:
+  Node();
+  Node(double x_n, double y_n);
 };
 
 template <ElementType T> struct Element {
@@ -20,6 +26,7 @@ template <ElementType T> struct Element {
   std::array<int, T> element_nodes;
 };
 
+/*Utter Garbaje that should be removed*/
 struct Discrete {
   void (*x)(double *xsi, double *eta); // gives the xsi and eta values to
                                        // integrate over the element
@@ -31,54 +38,58 @@ struct Discrete {
 };
 
 template <ElementType T> struct Integration {
-  const double xsi[T]; // looks too clean to change
-  const double eta[T];
-  const double weight[T];
+  // should be const but cpp doesn't allow it :
+  // https://stackoverflow.com/questions/14495536/how-do-i-initialize-a-const-data-member
+  std::array<double, T> xi;
+  std::array<double, T> eta;
+  std::array<double, T> weight;
 };
 
 template <ElementType T> struct Mesh {
   ElementType mesh_type = T;
   std::vector<Element<T>> elements_lists;
-  Integration<T> *integration_rule;
-  Discrete *functions;
+  Integration<T> integration_rule;
+  Discrete functions;
 };
 
 struct Domain {
   int number_of_elements;
-  std::vector<Element<FEM_EDGE> *> elements;
-  char name[MAXNAME];
+  std::vector<Element<FEM_EDGE> *> elements; // no smart pointer bc no ownership
+  std::string name;
 };
 
 struct BoundaryCondition {
-  Domain *domain;
+  Domain &domain; // no smart pointer bc no ownership
   BoundaryType type;
   double value;
 };
 
-template <ElementType T> struct Geomerty {
-  int number_of_nodes;
+struct Geomerty {
+  int number_of_nodes; // redundant but pretty
   std::vector<Node> nodes_list;
-  Mesh<FEM_EDGE> *the_edge_mesh;
-  Mesh<T> *the_inner_mesh;
+  Mesh<FEM_EDGE> edge_mesh;
+  Mesh<FEM_TRIANGLE> full_mesh;
   int number_of_domains;
   std::vector<Domain> domains_list;
 };
 
 struct System {
   std::vector<double> B;
-  std::vector<std::vector<double>> A;
+  std::vector<double> data;
+  std::vector<int> column;
+  std::vector<int> row_ptr;
   int size;
 };
 
-template <ElementType T> struct Problem {
+struct Problem {
   double E, nu, rho, g;
   double A, B, C;
   int planarStrainStress; // dunno what it does
   int number_of_boundary_conditions;
-  BoundaryCondition *conditions;
-  int *constrained_nodes; // what the fuck is this
-  Geomerty<T> *geometry;
-  System *system;
+  std::vector<BoundaryCondition> conditions;
+  // int *constrained_nodes; // what the fuck is this (array)
+  Geomerty geometry;
+  System system;
 };
 
 } // namespace fem

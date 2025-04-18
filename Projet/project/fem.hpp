@@ -54,12 +54,12 @@ template <ElementType T> struct Mesh {
 
 struct Domain {
   int number_of_elements;
-  std::vector<Element<FEM_EDGE> *> elements; // no smart pointer bc no ownership
+  std::vector<Element<FEM_EDGE> *> elements;
   std::string name;
 };
 
 struct BoundaryCondition {
-  Domain &domain; // no smart pointer bc no ownership
+  const Domain &domain; // no smart pointer bc no ownership
   BoundaryType type;
   double value;
 };

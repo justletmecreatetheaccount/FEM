@@ -220,7 +220,7 @@ void parse_domains(std::ifstream &stream, std::vector<fem::Domain> &domain_list,
  * OUT : fem::Problem; the filled Problem
  */
 
-fem::Problem fem::read_mesh_file(const char *filename) {
+fem::Problem fem::read_mesh_file(const char *filename, ) {
   fem::Problem problem;
   std::ifstream mesh_file(filename); // open file stream
 
@@ -357,6 +357,51 @@ fem::Problem fem::read_mesh_file(const char *filename) {
   init_system(problem.system, connections_list,
               problem.geometry.number_of_nodes, number_of_edges,
               number_of_triangles);
+
+  /* DEBUG INFO
+  for (size_t i = 0; i < problem.geometry.nodes_list.size(); i++) {
+    std::cout << "node " << i << " : " << problem.geometry.nodes_list[i].x
+              << ", " << problem.geometry.nodes_list[i].y << "\n";
+  }
+  std::cout << "number comp " << problem.geometry.number_of_nodes << " "
+            << problem.geometry.nodes_list.size() << "\n";
+
+  for (size_t i = 0; i < problem.geometry.edge_mesh.elements_lists.size();
+       i++) {
+    std::cout << "edge " << i << " : "
+              << problem.geometry.edge_mesh.elements_lists[i].element_nodes[0]
+              << " "
+              << problem.geometry.edge_mesh.elements_lists[i].element_nodes[1]
+              << "\n";
+  }
+  for (size_t i = 0; i < problem.geometry.full_mesh.elements_lists.size();
+       i++) {
+    std::cout << "triangles " << i << " : "
+              << problem.geometry.full_mesh.elements_lists[i].element_nodes[0]
+              << " "
+              << problem.geometry.full_mesh.elements_lists[i].element_nodes[1]
+              << " "
+              << problem.geometry.full_mesh.elements_lists[i].element_nodes[2]
+              << "\n";
+  }
+  for (size_t i = 0; i < problem.geometry.domains_list.size(); i++) {
+    for (size_t j = 0; j < problem.geometry.domains_list[i].elements.size();
+         j++) {
+      std::cout
+          << problem.geometry.domains_list[i].name << " : element " << j
+          << " : "
+          << problem.geometry.domains_list[i].elements[j]->element_nodes[0]
+          << " "
+          << problem.geometry.domains_list[i].elements[j]->element_nodes[1]
+          << "\n";
+    }
+    std::cout << " number comp "
+              << problem.geometry.domains_list[i].elements.size() << " "
+              << problem.geometry.domains_list[i].number_of_elements << "\n";
+  }
+  std::cout << "number comp " << problem.geometry.number_of_domains << " "
+            << problem.geometry.domains_list.size() << "\n";
+  */
 
   for (int i = 0; i < MAX_THREADS; i++) {
     free(buffer_list[i]);

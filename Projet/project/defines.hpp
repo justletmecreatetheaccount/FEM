@@ -6,3 +6,4 @@
 // same for an edge
 #define EDGES_LINE_LENGTH 24
 #define TRIANGLES_LINE_LENGTH 30
+#define THREADS_PER_BLOCK 256

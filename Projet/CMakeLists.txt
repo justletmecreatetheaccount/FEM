@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project(FemGauntlet LANGUAGES C CXX)
+project(FemGauntlet LANGUAGES C CXX CUDA)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(BUILD_SHARED_LIBS ON)

@@ -5,10 +5,9 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_C_STANDARD 11)
-# to enable cuda : uncomment
-# enable_language(CUDA)
+enable_language(CUDA)
 
 add_compile_options(
     -Wall 
@@ -19,9 +18,10 @@ add_compile_options(
     -O3
 )
 
-file(GLOB APP_SOURCES *.cpp *.c)
+file(GLOB APP_SOURCES *.cpp *.c *.cu)
 message("sources = ${APP_SOURCES}")
 add_library(
     femsolver
     ${APP_SOURCES}
 )
+set_target_properties( femsolver PROPERTIES CUDA_SEPARABLE_COMPILATION ON)

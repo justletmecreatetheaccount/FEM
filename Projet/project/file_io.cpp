@@ -66,13 +66,15 @@ void parse_elements<fem::FEM_EDGE>(
     buffer_stream >> edge_number;
     buffer_stream.ignore(6);
     buffer_stream >> nodes[0] >> nodes[1];
-    std::sort(nodes, nodes + 2);
+
     element_list[edge_number].element_nodes[0] = nodes[0];
     element_list[edge_number].element_nodes[1] = nodes[1];
 
     // INIT SYSTEM
     bool already_linked = false;
+    // lock connection list for node[0]
     mutexes_list[nodes[0]].lock();
+    // check for already made connection
     for (size_t j = 0; j < connections_list[nodes[0]].size(); j++) {
       if (connections_list[nodes[0]][j] == nodes[1]) {
         already_linked = true;
@@ -82,6 +84,19 @@ void parse_elements<fem::FEM_EDGE>(
       connections_list[nodes[0]].push_back(nodes[1]);
     }
     mutexes_list[nodes[0]].unlock();
+    already_linked = false;
+    // lock connection list for node[1]
+    mutexes_list[nodes[1]].lock();
+    // check for already made connection
+    for (size_t j = 0; j < connections_list[nodes[1]].size(); j++) {
+      if (connections_list[nodes[1]][j] == nodes[0]) {
+        already_linked = true;
+      }
+    }
+    if (!already_linked) {
+      connections_list[nodes[1]].push_back(nodes[0]);
+    }
+    mutexes_list[nodes[1]].unlock();
   }
 };
 
@@ -103,7 +118,6 @@ void parse_elements<fem::FEM_TRIANGLE>(
     buffer_stream >> triangle_number;
     buffer_stream.ignore(6);
     buffer_stream >> nodes[0] >> nodes[1] >> nodes[2];
-    std::sort(nodes, nodes + 3);
 
     // very ugly but element_nodes already exists
     element_list[triangle_number].element_nodes[0] = nodes[0];
@@ -112,6 +126,7 @@ void parse_elements<fem::FEM_TRIANGLE>(
 
     // INIT SYSTEM
     // first node
+    bool already_linked_0 = false;
     bool already_linked_1 = false;
     bool already_linked_2 = false;
     mutexes_list[nodes[0]].lock();
@@ -131,18 +146,39 @@ void parse_elements<fem::FEM_TRIANGLE>(
     }
     mutexes_list[nodes[0]].unlock();
     // second node
-    already_linked_2 = false;
     mutexes_list[nodes[1]].lock();
-
     for (size_t j = 0; j < connections_list[nodes[1]].size(); j++) {
-      if (connections_list[nodes[1]][j] == nodes[2]) {
-        already_linked_1 = true;
+      if (connections_list[nodes[1]][j] == nodes[0]) {
+        already_linked_0 = true;
       }
+      if (connections_list[nodes[1]][j] == nodes[2]) {
+        already_linked_2 = true;
+      }
+    }
+    if (!already_linked_0) {
+      connections_list[nodes[1]].push_back(nodes[0]);
     }
     if (!already_linked_2) {
       connections_list[nodes[1]].push_back(nodes[2]);
     }
     mutexes_list[nodes[1]].unlock();
+    // third node
+    mutexes_list[nodes[2]].lock();
+    for (size_t j = 0; j < connections_list[nodes[2]].size(); j++) {
+      if (connections_list[nodes[2]][j] == nodes[1]) {
+        already_linked_1 = true;
+      }
+      if (connections_list[nodes[2]][j] == nodes[0]) {
+        already_linked_0 = true;
+      }
+    }
+    if (!already_linked_1) {
+      connections_list[nodes[2]].push_back(nodes[1]);
+    }
+    if (!already_linked_0) {
+      connections_list[nodes[2]].push_back(nodes[0]);
+    }
+    mutexes_list[nodes[2]].unlock();
   }
 };
 
@@ -154,21 +190,22 @@ void init_system(fem::System &system,
   int number_internal_links = (number_of_triangles * 3 - number_of_edges) / 2;
   int links_per_element = (3 - 1) * 3 / 2;
   int data_size =
-      (3 * number_of_nodes +
-       4 * (links_per_element * number_of_triangles - number_internal_links));
+      (4 * number_of_nodes +
+       2 * 4 *
+           (links_per_element * number_of_triangles - number_internal_links));
   system.row_ptr.resize(number_of_nodes * 2 + 1);
   system.data.resize(data_size);
   system.column.resize(data_size);
   system.B.resize(number_of_nodes * 2);
-  system.size = 2 * number_of_nodes * 2;
+  system.size = 2 * number_of_nodes;
 
   for (int i = 1; i < number_of_nodes * 2; i += 2) {
-    // the node itself
     system.row_ptr[i + 1] +=
         system.row_ptr[i] + connections_list[i].size() * 2 + 2;
     system.row_ptr[i + 2] +=
-        system.row_ptr[i + 1] + connections_list[i].size() * 2 + 1;
+        system.row_ptr[i + 1] + connections_list[i].size() * 2 + 2;
     // first row
+    // the node itself
     system.column[system.row_ptr[i]] = i * 2;
     system.column[system.row_ptr[i] + 1] = i * 2 + 1;
 
@@ -177,7 +214,9 @@ void init_system(fem::System &system,
       system.column[system.row_ptr[i] + j + 3] = connections_list[i][j] * 2 + 1;
     }
     // second row
+    // the node itself
     system.column[system.row_ptr[i + 1]] = i * 2 + 1;
+    system.column[system.row_ptr[i + 1] + 1] = i * 2 + 1;
     for (size_t j = 0; j < connections_list[i].size(); j++) {
       system.column[system.row_ptr[i + 1] + j + 1] = connections_list[i][j] * 2;
       system.column[system.row_ptr[i + 1] + j + 2] =
@@ -214,16 +253,8 @@ void parse_domains(std::ifstream &stream, std::vector<fem::Domain> &domain_list,
   }
 }
 
-/* This function reads the in file and creates all the necessary structures
- * ======
- * IN : filename; the name of the file
- * OUT : fem::Problem; the filled Problem
- */
-
-fem::Problem fem::read_mesh_file(const char *filename, ) {
-  fem::Problem problem;
+void fem::read_mesh_file(const char *filename, fem::Problem &problem) {
   std::ifstream mesh_file(filename); // open file stream
-
   mesh_file.ignore(16); // not very clean but intended way of discarding
   mesh_file >> problem.geometry.number_of_nodes; // parse number of nodes
   problem.geometry.nodes_list.resize(
@@ -304,7 +335,7 @@ fem::Problem fem::read_mesh_file(const char *filename, ) {
   int number_of_triangles;
   mesh_file.ignore(21);
   mesh_file >> number_of_triangles;
-  mesh_file.ignore(2); // god knows why no space after triangle lines
+  mesh_file.ignore(2); // god knows why, there are no space after triangle lines
   problem.geometry.full_mesh.elements_lists.resize(number_of_triangles);
 
   lines_per_thread = number_of_triangles / (MAX_THREADS);
@@ -349,7 +380,6 @@ fem::Problem fem::read_mesh_file(const char *filename, ) {
                 problem.geometry.number_of_domains,
                 problem.geometry.edge_mesh.elements_lists);
 
-  // Can join after bc vector does not  realloc
   for (int i = 0; i < MAX_THREADS; i++) {
     thread_list[i].join();
   }
@@ -406,5 +436,4 @@ fem::Problem fem::read_mesh_file(const char *filename, ) {
   for (int i = 0; i < MAX_THREADS; i++) {
     free(buffer_list[i]);
   }
-  return problem;
 };

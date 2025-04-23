@@ -1,4 +1,5 @@
 #pragma once
+#include "cuda_utils.cuh"
 #include <array>
 #include <memory>
 #include <string>
@@ -7,8 +8,7 @@
 namespace fem {
 
 typedef enum { FEM_EDGE = 2, FEM_TRIANGLE = 3 } ElementType;
-typedef enum { DIRICHLET_X, DIRICHLET_Y, NEUMANN_X, NEUMANN_Y } BoundaryType;
-typedef enum { PLANAR_STRESS, PLANAR_STRAIN, AXISYM } ElasticCase;
+typedef enum { DIRICHLET_X, DIRICHLET_Y } BoundaryType;
 
 struct Node {
   double x;
@@ -26,17 +26,6 @@ template <ElementType T> struct Element {
   std::array<int, T> element_nodes;
 };
 
-/*Utter Garbaje that should be removed*/
-struct Discrete {
-  void (*x)(double *xsi, double *eta); // gives the xsi and eta values to
-                                       // integrate over the element
-  void (*phi)(
-      double xsi, double eta,
-      double *phi); // the values of the form functions at the given points
-
-  void (*dphidx)(double xsi, double eta, double *dphidxsi, double *dphideta);
-};
-
 template <ElementType T> struct Integration {
   // should be const but cpp doesn't allow it :
   // https://stackoverflow.com/questions/14495536/how-do-i-initialize-a-const-data-member
@@ -45,11 +34,42 @@ template <ElementType T> struct Integration {
   std::array<double, T> weight;
 };
 
-template <ElementType T> struct Mesh {
-  ElementType mesh_type = T;
-  std::vector<Element<T>> elements_lists;
-  Integration<T> integration_rule;
-  Discrete functions;
+template <ElementType T> struct Mesh {};
+
+template <> struct Mesh<FEM_EDGE> {
+  ElementType mesh_type = FEM_EDGE;
+  std::vector<Element<FEM_EDGE>> elements_lists;
+  Integration<FEM_EDGE> integration_rule;
+  // xsi and weights values to integrate over the element
+  const std::array<double, FEM_EDGE> xsi = {0.577350269189626,
+                                            -0.577350269189626};
+  const std::array<double, FEM_EDGE> weights = {1.000000000000000,
+                                                1.000000000000000};
+  void phi(double _xsi,
+           std::array<double, FEM_EDGE>
+               &phi); // the values of the form functions at the given points
+
+  void dphidx(double _xsi, std::array<double, FEM_EDGE> &dphidxsi);
+};
+template <> struct Mesh<FEM_TRIANGLE> {
+  ElementType mesh_type = FEM_TRIANGLE;
+  std::vector<Element<FEM_TRIANGLE>> elements_lists;
+  Integration<FEM_TRIANGLE> integration_rule;
+  // xsi, eta and weights values to integrate over the element
+  const std::array<double, FEM_TRIANGLE> xsi = {
+      0.166666666666667, 0.666666666666667, 0.166666666666667};
+  const std::array<double, FEM_TRIANGLE> eta = {
+      0.166666666666667, 0.166666666666667, 0.666666666666667};
+  const std::array<double, FEM_TRIANGLE> weights = {
+      0.166666666666667, 0.166666666666667, 0.166666666666667};
+  void
+  phi(double _xsi, double _eta,
+      std::array<double, FEM_TRIANGLE> &phi); // the values of the form
+                                              // functions at the given points
+
+  void dphidx(double _xsi, double _eta,
+              std::array<double, FEM_TRIANGLE> &dphidxsi,
+              std::array<double, FEM_TRIANGLE> &dphideta);
 };
 
 struct Domain {
@@ -74,22 +94,29 @@ struct Geomerty {
 };
 
 struct System {
-  std::vector<double> B;
-  std::vector<double> data;
-  std::vector<int> column;
-  std::vector<int> row_ptr;
+  std::vector<double, cuda::allocator<double>> B;
+  std::vector<double, cuda::allocator<double>> data;
+  std::vector<int, cuda::allocator<int>> column;
+  std::vector<int, cuda::allocator<int>> row_ptr;
   int size;
 };
 
 struct Problem {
   double E, nu, rho, g;
   double A, B, C;
-  int planarStrainStress; // dunno what it does
   int number_of_boundary_conditions;
   std::vector<BoundaryCondition> conditions;
   // int *constrained_nodes; // what the fuck is this (array)
   Geomerty geometry;
   System system;
+
+  Problem(const char *input_file, double _E, double _nu, double _rho,
+          double _g);
 };
 
+/* TODO
+ */
+void assemble_system(Problem problem);
+void conjugate_gradient(System system);
+void incomplete_cholesky();
 } // namespace fem

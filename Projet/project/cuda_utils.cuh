@@ -20,11 +20,14 @@ template <class T, class U>
 constexpr bool operator!=(const allocator<T> &, const allocator<U> &) noexcept {
   return false;
 }
-template <typename T> void add_vectors(unsigned int n, T *v1, T *v2);
+template <typename T>
+void add_vectors(unsigned int n, T *v1, T *v2, T c1 = 1, T c2 = 1);
 template <typename T> T multiply_vectors(unsigned int n, T *v1, T *v2);
 template <typename T>
-void multiply_matrix_vectors(unsigned int size, unsigned int data_size,
-                             unsigned int columns, unsigned int row_pointers,
-                             T *data, T *vector, T *result);
+void multiply_matrix_vector(unsigned int size, unsigned int columns,
+                            unsigned int row_pointers, T *data, T *vector,
+                            T *result);
+void conjugate_gradient(unsigned int size, unsigned int *columns,
+                        unsigned int *row_pointers, double *data, double *B);
 void test();
 } // namespace cuda

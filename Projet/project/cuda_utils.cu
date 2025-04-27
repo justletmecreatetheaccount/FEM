@@ -3,10 +3,11 @@
 #include <iostream>
 
 // Kernel function to add the elements of two arrays
-template <typename T> __global__ void add_vv(unsigned int n, T *v1, T *v2) {
+template <typename T>
+__global__ void add_vv(unsigned int n, T *v1, T *v2, T c1, T c2) {
   unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < n)
-    v2[idx] = v1[idx] + v2[idx];
+    v2[idx] = c1 * v1[idx] + c2 * v2[idx];
 }
 
 template <typename T>
@@ -61,6 +62,15 @@ __host__ __device__ inline unsigned int prevPowerOf2(unsigned int x) {
   return x - (x >> 1);
 }
 
+double vectorNorm(int size, double *A) {
+  int i;
+  double norm = 0;
+  for (i = 0; i < size; i++)
+    norm += A[i] * A[i];
+  norm = sqrt(norm);
+  return norm;
+}
+
 namespace cuda {
 template <class T> T *allocator<T>::allocate(std::size_t n) {
   T *x;
@@ -74,25 +84,29 @@ template <class T> void allocator<T>::deallocate(T *p, std::size_t n) {
 
 // Explicit instantiations:
 template class allocator<int>;
+template class allocator<unsigned int>;
 template class allocator<double>;
 
-template <typename T> void add_vectors(unsigned int n, T *v1, T *v2) {
+template <typename T>
+void add_vectors(unsigned int n, T *v1, T *v2, T c1, T c2) {
   int number_of_blocks = n / THREADS_PER_BLOCK + 1;
-  add_vv<T><<<number_of_blocks, THREADS_PER_BLOCK>>>(n, v1, v2);
+  add_vv<T><<<number_of_blocks, THREADS_PER_BLOCK>>>(n, v1, v2, c1, c2);
 };
 // Explicit instantiations:
-template void add_vectors<int>(unsigned int n, int *v1, int *v2);
-template void add_vectors<double>(unsigned int n, double *v1, double *v2);
+template void add_vectors<int>(unsigned int n, int *v1, int *v22, int c1,
+                               int c2);
+template void add_vectors<double>(unsigned int n, double *v1, double *v2,
+                                  double c1, double c2);
 
 template <typename T> T multiply_vectors(unsigned int n, T *v1, T *v2) {
   int number_of_blocs = n / THREADS_PER_BLOCK + 1;
   T *result_shared;
   cudaMalloc(&result_shared, sizeof(T));
-  cudaMemset(result_shared, 0, 1);
+  cudaMemset(result_shared, 0, sizeof(T));
   multiply_vv<T>
       <<<number_of_blocs, THREADS_PER_BLOCK>>>(n, v1, v2, result_shared);
   T result;
-  cudaMemcpy(&result, result_shared, sizeof(int), cudaMemcpyDeviceToHost);
+  cudaMemcpy(&result, result_shared, sizeof(T), cudaMemcpyDeviceToHost);
   cudaFree(result_shared);
   return result;
 };
@@ -103,13 +117,13 @@ template double multiply_vectors<double>(unsigned int n, double *v1,
                                          double *v2);
 
 template <typename T>
-void multiply_matrix_vectors(unsigned int size, unsigned int data_size,
-                             unsigned int *columns, unsigned int *row_pointers,
-                             T *data, T *vector, T *result, T alpha, T beta) {
+void multiply_matrix_vector(unsigned int size, unsigned int *columns,
+                            unsigned int *row_pointers, T *data, T *vector,
+                            T *result, T alpha, T beta) {
 
   // Code tombe du camion
   // https://gpuopen.com/learn/amd-lab-notes/amd-lab-notes-spmv-docs-spmv_part1/
-  int nnz_per_row = columns[size] / size;
+  int nnz_per_row = row_pointers[size] / size;
   int threads_per_row = prevPowerOf2(nnz_per_row);
   // limit the number of threads per row to be no larger than the wavefront
   // (warp) size; Couldn't find an exact figure for warp size let's hope 32 is
@@ -141,16 +155,70 @@ void multiply_matrix_vectors(unsigned int size, unsigned int data_size,
 };
 
 // Explicit instantiations:
-template void multiply_matrix_vectors<int>(unsigned int size,
-                                           unsigned int data_size,
-                                           unsigned int *columns,
-                                           unsigned int *row_pointers,
-                                           int *data, int *vector, int *result,
-                                           int alpha, int beta);
-template void multiply_matrix_vectors<double>(
-    unsigned int size, unsigned int data_size, unsigned int *columns,
-    unsigned int *row_pointers, double *data, double *vector, double *result,
-    double alpha, double beta);
+template void multiply_matrix_vector<int>(unsigned int size,
+                                          unsigned int *columns,
+                                          unsigned int *row_pointers, int *data,
+                                          int *vector, int *result, int alpha,
+                                          int beta);
+template void multiply_matrix_vector<double>(
+    unsigned int size, unsigned int *columns, unsigned int *row_pointers,
+    double *data, double *vector, double *result, double alpha, double beta);
+
+void conjugate_gradient(unsigned int size, unsigned int *columns,
+                        unsigned int *row_pointers, double *data, double *B) {
+  double *Residual, *search_direction, *A_search_direction;
+  cudaMallocManaged(&Residual, size * sizeof(double));
+  cudaMallocManaged(&search_direction, size * sizeof(double));
+  cudaMallocManaged(&A_search_direction, size * sizeof(double));
+
+  // Initialize residual vector
+  multiply_matrix_vector<double>(size, columns, row_pointers, data, B, Residual,
+                                 1.0, 1.0);
+  add_vectors<double>(size, B, Residual, 1.0, -1.0);
+  // Skip all if utility is right guess
+  if (vectorNorm(size, Residual) < TOL) {
+    cudaFree(Residual);
+    cudaFree(search_direction);
+    cudaFree(A_search_direction);
+  }
+
+  // Initialize search direction vector
+  memcpy(search_direction, Residual, sizeof(double) * size);
+  // Iterate until convergence
+  for (int i = 0; i < 100; i++) {
+    multiply_matrix_vector<double>(size, columns, row_pointers, data,
+                                   search_direction, A_search_direction, 1, 1);
+
+    double old_rz_product = multiply_vectors<double>(size, Residual, Residual);
+    double step_size =
+        old_rz_product /
+        multiply_vectors<double>(size, search_direction, A_search_direction);
+
+    // Update solution
+    // dotScalarVector(size, step_size, search_direction, utility);
+    // addVector(size, B, utility, B);
+    add_vectors<double>(size, search_direction, B, step_size, 1.0);
+
+    // Update residual
+    // dotScalarVector(size, step_size, A_search_direction, utility);
+    // substracVector(size, Residual, utility, Residual);
+    add_vectors<double>(size, A_search_direction, Residual, -step_size, 1.0);
+
+    if (vectorNorm(size, Residual) < TOL) {
+      break;
+    }
+
+    // Update search direction
+    double beta =
+        multiply_vectors<double>(size, Residual, Residual) / old_rz_product;
+    // dotScalarVector(size, beta, search_direction, utility);
+    // addVector(size, Residual, utility, search_direction);
+    add_vectors(size, Residual, search_direction, 1.0, beta);
+  }
+  cudaFree(Residual);
+  cudaFree(search_direction);
+  cudaFree(A_search_direction);
+}
 
 void test() {
   bool good = true;

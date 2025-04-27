@@ -3,6 +3,7 @@
 #include <array>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <vector>
 
 namespace fem {
@@ -23,15 +24,7 @@ template <ElementType T> struct Element {
   // stores the nodes id (ie : their position in the mesh array);
   // the nodes are connected to the adjacent ones in the array (the array
   // "loops")
-  std::array<int, T> element_nodes;
-};
-
-template <ElementType T> struct Integration {
-  // should be const but cpp doesn't allow it :
-  // https://stackoverflow.com/questions/14495536/how-do-i-initialize-a-const-data-member
-  std::array<double, T> xi;
-  std::array<double, T> eta;
-  std::array<double, T> weight;
+  unsigned int element_nodes[T];
 };
 
 template <ElementType T> struct Mesh {};
@@ -39,74 +32,76 @@ template <ElementType T> struct Mesh {};
 template <> struct Mesh<FEM_EDGE> {
   ElementType mesh_type = FEM_EDGE;
   std::vector<Element<FEM_EDGE>> elements_lists;
-  Integration<FEM_EDGE> integration_rule;
   // xsi and weights values to integrate over the element
-  const std::array<double, FEM_EDGE> xsi = {0.577350269189626,
-                                            -0.577350269189626};
-  const std::array<double, FEM_EDGE> weights = {1.000000000000000,
-                                                1.000000000000000};
+  double xsi[FEM_EDGE] = {0.577350269189626, -0.577350269189626};
+  double weights[FEM_EDGE] = {1.000000000000000, 1.000000000000000};
   void phi(double _xsi,
-           std::array<double, FEM_EDGE>
-               &phi); // the values of the form functions at the given points
+           double phi[FEM_EDGE]); // the values of the form functions at the
+                                  // given points
 
-  void dphidx(double _xsi, std::array<double, FEM_EDGE> &dphidxsi);
+  void dphidx(double _xsi, double dphidxsi[FEM_EDGE]);
 };
 template <> struct Mesh<FEM_TRIANGLE> {
   ElementType mesh_type = FEM_TRIANGLE;
   std::vector<Element<FEM_TRIANGLE>> elements_lists;
-  Integration<FEM_TRIANGLE> integration_rule;
   // xsi, eta and weights values to integrate over the element
-  const std::array<double, FEM_TRIANGLE> xsi = {
-      0.166666666666667, 0.666666666666667, 0.166666666666667};
-  const std::array<double, FEM_TRIANGLE> eta = {
-      0.166666666666667, 0.166666666666667, 0.666666666666667};
-  const std::array<double, FEM_TRIANGLE> weights = {
-      0.166666666666667, 0.166666666666667, 0.166666666666667};
-  void
-  phi(double _xsi, double _eta,
-      std::array<double, FEM_TRIANGLE> &phi); // the values of the form
-                                              // functions at the given points
+  double xsi[FEM_TRIANGLE] = {0.166666666666667, 0.666666666666667,
+                              0.166666666666667};
+  double eta[FEM_TRIANGLE] = {0.166666666666667, 0.166666666666667,
+                              0.666666666666667};
+  double weights[FEM_TRIANGLE] = {0.166666666666667, 0.166666666666667,
+                                  0.166666666666667};
+  void phi(double _xsi, double _eta,
+           double phi[FEM_TRIANGLE]); // the values of the form
+                                      // functions at the given points
 
-  void dphidx(double _xsi, double _eta,
-              std::array<double, FEM_TRIANGLE> &dphidxsi,
-              std::array<double, FEM_TRIANGLE> &dphideta);
-};
-
-struct Domain {
-  int number_of_elements;
-  std::vector<Element<FEM_EDGE> *> elements;
-  std::string name;
-};
-
-struct BoundaryCondition {
-  const Domain &domain; // no smart pointer bc no ownership
-  BoundaryType type;
-  double value;
-};
-
-struct Geomerty {
-  int number_of_nodes; // redundant but pretty
-  std::vector<Node> nodes_list;
-  Mesh<FEM_EDGE> edge_mesh;
-  Mesh<FEM_TRIANGLE> full_mesh;
-  int number_of_domains;
-  std::vector<Domain> domains_list;
+  void dphidx(double _xsi, double _eta, double dphidxsi[FEM_TRIANGLE],
+              double dphideta[FEM_TRIANGLE]);
 };
 
 struct System {
   std::vector<double, cuda::allocator<double>> B;
   std::vector<double, cuda::allocator<double>> data;
-  std::vector<int, cuda::allocator<int>> column;
-  std::vector<int, cuda::allocator<int>> row_ptr;
-  int size;
+  std::vector<unsigned int, cuda::allocator<unsigned int>> column;
+  std::vector<unsigned int, cuda::allocator<unsigned int>> row_ptr;
+  unsigned int size;
+};
+
+struct Domain {
+  unsigned int number_of_elements;
+  std::vector<Element<FEM_EDGE> *> elements;
+  std::string name;
+};
+
+struct Problem;
+
+struct BoundaryCondition {
+  const Domain *domain; // no smart pointer bc no ownership
+  BoundaryType type;
+  double value;
+  BoundaryCondition(Problem &problem, Domain *_domain, BoundaryType _type,
+                    double _value);
+  static void system_constrain(fem::System &system, unsigned int myNode,
+                               double myValue);
+};
+
+struct Geomerty {
+  unsigned int number_of_nodes; // redundant but pretty
+  std::vector<Node> nodes_list;
+  Mesh<FEM_EDGE> edge_mesh;
+  Mesh<FEM_TRIANGLE> full_mesh;
+  unsigned int number_of_domains;
+  std::vector<Domain> domains_list;
+  Domain *get_domain_by_name(std::string _name);
 };
 
 struct Problem {
   double E, nu, rho, g;
   double A, B, C;
-  int number_of_boundary_conditions;
   std::vector<BoundaryCondition> conditions;
-  // int *constrained_nodes; // what the fuck is this (array)
+  std::vector<std::tuple<unsigned int, BoundaryCondition *>>
+      constrained_nodes; // array that contains the positions in the system
+                         // (node_id x or y) and pointer to associated condition
   Geomerty geometry;
   System system;
 
@@ -116,7 +111,4 @@ struct Problem {
 
 /* TODO
  */
-void assemble_system(Problem problem);
-void conjugate_gradient(System system);
-void incomplete_cholesky();
 } // namespace fem

@@ -184,7 +184,7 @@ void parse_elements<fem::FEM_TRIANGLE>(
 
 void init_system(fem::System &system,
                  std::vector<std::vector<int>> &connections_list,
-                 int number_of_nodes, int number_of_edges,
+                 unsigned int number_of_nodes, int number_of_edges,
                  int number_of_triangles) {
   // System Init
   int number_internal_links = (number_of_triangles * 3 - number_of_edges) / 2;
@@ -199,28 +199,32 @@ void init_system(fem::System &system,
   system.B.resize(number_of_nodes * 2);
   system.size = 2 * number_of_nodes;
 
-  for (int i = 1; i < number_of_nodes * 2; i += 2) {
+  for (size_t i = 1; i < number_of_nodes * 2; i += 2) {
+    unsigned int node_number = (i - 1) / 2;
     system.row_ptr[i + 1] +=
-        system.row_ptr[i] + connections_list[i].size() * 2 + 2;
+        system.row_ptr[i] + connections_list[node_number].size() * 2 + 2;
     system.row_ptr[i + 2] +=
-        system.row_ptr[i + 1] + connections_list[i].size() * 2 + 2;
+        system.row_ptr[i + 1] + connections_list[node_number].size() * 2 + 2;
     // first row
     // the node itself
     system.column[system.row_ptr[i]] = i * 2;
     system.column[system.row_ptr[i] + 1] = i * 2 + 1;
 
-    for (size_t j = 0; j < connections_list[i].size(); j++) {
-      system.column[system.row_ptr[i] + j + 2] = connections_list[i][j] * 2;
-      system.column[system.row_ptr[i] + j + 3] = connections_list[i][j] * 2 + 1;
+    for (size_t j = 0; j < connections_list[node_number].size(); j++) {
+      system.column[system.row_ptr[i] + j + 2] =
+          connections_list[node_number][j] * 2;
+      system.column[system.row_ptr[i] + j + 3] =
+          connections_list[node_number][j] * 2 + 1;
     }
     // second row
     // the node itself
     system.column[system.row_ptr[i + 1]] = i * 2 + 1;
     system.column[system.row_ptr[i + 1] + 1] = i * 2 + 1;
-    for (size_t j = 0; j < connections_list[i].size(); j++) {
-      system.column[system.row_ptr[i + 1] + j + 1] = connections_list[i][j] * 2;
+    for (size_t j = 0; j < connections_list[node_number].size(); j++) {
+      system.column[system.row_ptr[i + 1] + j + 1] =
+          connections_list[node_number][j] * 2;
       system.column[system.row_ptr[i + 1] + j + 2] =
-          connections_list[i][j] * 2 + 1;
+          connections_list[node_number][j] * 2 + 1;
     }
   }
 };
@@ -245,8 +249,8 @@ void parse_domains(std::ifstream &stream, std::vector<fem::Domain> &domain_list,
     domain_list[i].name.append(temp_trash_c_string);
     stream.ignore(27);
     stream >> domain_list[i].number_of_elements;
-    for (int j = 0; j < domain_list[i].number_of_elements; j++) {
-      int element_number;
+    for (unsigned int j = 0; j < domain_list[i].number_of_elements; j++) {
+      unsigned int element_number;
       stream >> element_number;
       domain_list[i].elements.push_back(&(elements_list[element_number]));
     }

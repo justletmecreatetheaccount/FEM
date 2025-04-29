@@ -59,7 +59,6 @@ void fem::BoundaryCondition::system_constrain(fem::System &system,
 
   for (unsigned int i = system.row_ptr[myNode]; i < system.row_ptr[myNode + 1];
        i++) {
-
     if (system.column[i] == myNode) {
       // Found the column index for the current row
       system.data[i] = 1;
@@ -119,4 +118,23 @@ fem::Problem::Problem(const char *input_file, double _E, double _nu,
   A = E * (1 - nu) / ((1 + nu) * (1 - 2 * nu));
   B = E * nu / ((1 + nu) * (1 - 2 * nu));
   C = E / (2 * (1 + nu));
+}
+
+void fem::Problem::femSolutionWrite(int nNodes, int nfields, double *data,
+                                    const char *filename) {
+  FILE *file = fopen(filename, "w");
+  if (!file) {
+    printf("Error at %s:%d\nUnable to open file %s\n", __FILE__, __LINE__,
+           filename);
+    exit(-1);
+  }
+  fprintf(file, "Size %d,%d\n", nNodes, nfields);
+  for (int i = 0; i < nNodes; i++) {
+    for (int j = 0; j < nfields - 1; j++) {
+      fprintf(file, "%.18le,", data[i * nfields + j]);
+    }
+    fprintf(file, "%.18le", data[i * nfields + nfields - 1]);
+    fprintf(file, "\n");
+  }
+  fclose(file);
 }

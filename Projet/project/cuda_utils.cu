@@ -1,6 +1,16 @@
 #include "cuda_utils.cuh"
 #include "defines.hpp"
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
+#include <vector>
+
+__global__ void testing_cuda_vec(double *v) {
+  for (int i = 0; i < 6; i++) {
+    v[i] = 69;
+  }
+}
 
 // Kernel function to add the elements of two arrays
 template <typename T>
@@ -38,7 +48,7 @@ __global__ void multiply_mv(unsigned int size, unsigned int *row_pointers,
     // finish the sparse row * vector dot product operation
 #pragma unroll
     for (int i = THREADS_PER_ROW >> 1; i > 0; i >>= 1)
-      sum += __shfl_down_sync(sum, i, THREADS_PER_ROW);
+      sum += __shfl_down_sync(0xffffffff, sum, i, THREADS_PER_ROW);
 
     // write to memory
     if (!threadIdx.x) {
@@ -52,8 +62,6 @@ __global__ void multiply_mv(unsigned int size, unsigned int *row_pointers,
 }
 
 __host__ __device__ inline unsigned int prevPowerOf2(unsigned int x) {
-  if (x == 0)
-    return 0;
   x |= (x >> 1);
   x |= (x >> 2);
   x |= (x >> 4);
@@ -62,10 +70,9 @@ __host__ __device__ inline unsigned int prevPowerOf2(unsigned int x) {
   return x - (x >> 1);
 }
 
-double vectorNorm(int size, double *A) {
-  int i;
+double vectorNorm(unsigned int size, double *A) {
   double norm = 0;
-  for (i = 0; i < size; i++)
+  for (unsigned int i = 0; i < size; i++)
     norm += A[i] * A[i];
   norm = sqrt(norm);
   return norm;
@@ -105,6 +112,7 @@ template <typename T> T multiply_vectors(unsigned int n, T *v1, T *v2) {
   cudaMemset(result_shared, 0, sizeof(T));
   multiply_vv<T>
       <<<number_of_blocs, THREADS_PER_BLOCK>>>(n, v1, v2, result_shared);
+  cudaDeviceSynchronize();
   T result;
   cudaMemcpy(&result, result_shared, sizeof(T), cudaMemcpyDeviceToHost);
   cudaFree(result_shared);
@@ -123,35 +131,36 @@ void multiply_matrix_vector(unsigned int size, unsigned int *columns,
 
   // Code tombe du camion
   // https://gpuopen.com/learn/amd-lab-notes/amd-lab-notes-spmv-docs-spmv_part1/
-  int nnz_per_row = row_pointers[size] / size;
-  int threads_per_row = prevPowerOf2(nnz_per_row);
+  unsigned int nnz_per_row = row_pointers[size] / size;
+  unsigned int threads_per_row = prevPowerOf2(nnz_per_row);
   // limit the number of threads per row to be no larger than the wavefront
   // (warp) size; Couldn't find an exact figure for warp size let's hope 32 is
   // good enough
   threads_per_row = threads_per_row > 32 ? 32 : threads_per_row;
-  int rows_per_block = THREADS_PER_BLOCK / threads_per_row;
-  int num_blocks = (size + rows_per_block - 1) / rows_per_block;
+  unsigned int rows_per_block = THREADS_PER_BLOCK / threads_per_row;
+  unsigned int num_blocks = (size + rows_per_block - 1) / rows_per_block;
 
   dim3 grid(num_blocks, 1, 1);
   dim3 block(threads_per_row, rows_per_block, 1);
-  if (threads_per_row <= 2)
+  if (threads_per_row <= 2) {
     multiply_mv<T, 2><<<grid, block>>>(size, row_pointers, columns, data,
                                        vector, result, alpha, beta);
-  else if (threads_per_row <= 4)
+  } else if (threads_per_row <= 4) {
     multiply_mv<T, 4><<<grid, block>>>(size, row_pointers, columns, data,
                                        vector, result, alpha, beta);
-  else if (threads_per_row <= 8)
+  } else if (threads_per_row <= 8) {
     multiply_mv<T, 8><<<grid, block>>>(size, row_pointers, columns, data,
                                        vector, result, alpha, beta);
-  else if (threads_per_row <= 16)
+  } else if (threads_per_row <= 16) {
     multiply_mv<T, 16><<<grid, block>>>(size, row_pointers, columns, data,
                                         vector, result, alpha, beta);
-  else if (threads_per_row <= 32)
+  } else if (threads_per_row <= 32) {
     multiply_mv<T, 32><<<grid, block>>>(size, row_pointers, columns, data,
                                         vector, result, alpha, beta);
-  else
+  } else {
     multiply_mv<T, 64><<<grid, block>>>(size, row_pointers, columns, data,
                                         vector, result, alpha, beta);
+  }
 };
 
 // Explicit instantiations:
@@ -173,10 +182,13 @@ void conjugate_gradient(unsigned int size, unsigned int *columns,
 
   // Initialize residual vector
   multiply_matrix_vector<double>(size, columns, row_pointers, data, B, Residual,
-                                 1.0, 1.0);
+                                 1.0, 0.0);
+  cudaDeviceSynchronize();
   add_vectors<double>(size, B, Residual, 1.0, -1.0);
-  // Skip all if utility is right guess
-  if (vectorNorm(size, Residual) < TOL) {
+  cudaDeviceSynchronize();
+  // Skip all if B is right guess
+  double old_res_norm = vectorNorm(size, Residual);
+  if (old_res_norm < TOL) {
     cudaFree(Residual);
     cudaFree(search_direction);
     cudaFree(A_search_direction);
@@ -185,35 +197,37 @@ void conjugate_gradient(unsigned int size, unsigned int *columns,
   // Initialize search direction vector
   memcpy(search_direction, Residual, sizeof(double) * size);
   // Iterate until convergence
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 5; i++) {
+    if (i == 4) {
+      std::cout << "ouf\n";
+    }
     multiply_matrix_vector<double>(size, columns, row_pointers, data,
-                                   search_direction, A_search_direction, 1, 1);
+                                   search_direction, A_search_direction, 1, 0);
+    cudaDeviceSynchronize();
 
-    double old_rz_product = multiply_vectors<double>(size, Residual, Residual);
     double step_size =
-        old_rz_product /
+        old_res_norm * old_res_norm /
         multiply_vectors<double>(size, search_direction, A_search_direction);
 
     // Update solution
-    // dotScalarVector(size, step_size, search_direction, utility);
-    // addVector(size, B, utility, B);
     add_vectors<double>(size, search_direction, B, step_size, 1.0);
+    cudaDeviceSynchronize();
 
     // Update residual
-    // dotScalarVector(size, step_size, A_search_direction, utility);
-    // substracVector(size, Residual, utility, Residual);
     add_vectors<double>(size, A_search_direction, Residual, -step_size, 1.0);
+    cudaDeviceSynchronize();
 
-    if (vectorNorm(size, Residual) < TOL) {
+    double new_res_norm = vectorNorm(size, Residual);
+
+    if (new_res_norm < TOL) {
       break;
     }
 
     // Update search direction
-    double beta =
-        multiply_vectors<double>(size, Residual, Residual) / old_rz_product;
-    // dotScalarVector(size, beta, search_direction, utility);
-    // addVector(size, Residual, utility, search_direction);
-    add_vectors(size, Residual, search_direction, 1.0, beta);
+    double beta = (new_res_norm * new_res_norm) / (old_res_norm * old_res_norm);
+    add_vectors<double>(size, Residual, search_direction, 1, beta);
+    cudaDeviceSynchronize();
+    old_res_norm = new_res_norm;
   }
   cudaFree(Residual);
   cudaFree(search_direction);
@@ -235,10 +249,10 @@ void test() {
   }
   memcpy(z, y, 1000 * sizeof(int));
 
-  add_vectors<int>(1000, x, y);
+  add_vectors<int>(1000, x, y, -2, 3);
 
   for (int i = 0; i < 1000; i++) {
-    z[i] = x[i] + z[i];
+    z[i] = -2 * x[i] + z[i] * 3;
   }
   cudaDeviceSynchronize();
   for (int i = 0; i < 1000; i++) {
@@ -268,6 +282,67 @@ void test() {
   cudaFree(x);
   cudaFree(y);
   free(z);
+  std::cout << "prev pow of 1 : " << prevPowerOf2(1) << "\n";
+  std::cout << "prev pow of 0 : " << prevPowerOf2(0) << "\n";
+  std::cout << "prev pow of 23 : " << prevPowerOf2(23) << "\n";
+  std::cout << "prev pow of 65 : " << prevPowerOf2(65) << "\n";
+
+  std::cout << "matrix mult \n";
+
+  /*
+  01 00 00 00 00 .6    69  =  82.2
+  03 00 07 02 09 00    42  =  891
+  50 00 65 02 .6 65    54  =  8410.4
+  00 00 00 01 00 00    00  =  0
+  02 52 00 65 00 00    34  =  2322
+  00 64 00 74 00 00    22  =  2688
+  */
+
+  double _B[6] = {69, 42, 54, 0, 34, 22};
+  double _data[17] = {1,   0.6, 3, 7, 2,  9,  50, 65, 2,
+                      0.6, 65,  1, 2, 52, 65, 64, 74};
+  unsigned int _row_ptr[7] = {0, 2, 6, 11, 12, 15, 17};
+  unsigned int _col[17] = {0, 5, 0, 2, 3, 4, 0, 2, 3, 4, 5, 3, 0, 1, 3, 1, 3};
+  double *result;
+  double *B;
+  double *data;
+  unsigned int *row_ptr, *col;
+  cudaMallocManaged(&result, sizeof(double) * 6);
+  cudaMallocManaged(&B, sizeof(double) * 6);
+  cudaMallocManaged(&data, sizeof(double) * 17);
+  cudaMallocManaged(&row_ptr, sizeof(unsigned int) * 17);
+  cudaMallocManaged(&col, sizeof(unsigned int) * 6);
+
+  memcpy(B, _B, sizeof(double) * 6);
+  memcpy(data, _data, sizeof(double) * 17);
+  memcpy(row_ptr, _row_ptr, sizeof(unsigned int) * 7);
+  memcpy(col, _col, sizeof(unsigned int) * 17);
+
+  multiply_matrix_vector<double>(6, col, row_ptr, data, B, result, 1, 1);
+  cudaDeviceSynchronize();
+
+  for (int i = 0; i < 6; i++) {
+    std::cout << "result : " << result[i] << "\n";
+  }
+
+  conjugate_gradient(6, col, row_ptr, data, result);
+  for (int i = 0; i < 6; i++) {
+    std::cout << "result conj : " << result[i] << "\n";
+  }
+
+  cudaFree(result);
+  cudaFree(B);
+  cudaFree(data);
+  cudaFree(row_ptr);
+  cudaFree(col);
+
+  std::vector<double, cuda::allocator<double>> test_vec(6);
+
+  testing_cuda_vec<<<1, 1>>>(test_vec.data());
+  cudaDeviceSynchronize();
+  for (int i = 0; i < 6; i++) {
+    std::cout << "test vec " << i << " : " << test_vec[i] << "\n";
+  }
 }
 
 } // namespace cuda

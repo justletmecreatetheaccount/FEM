@@ -3,6 +3,6 @@
 
 namespace cuda {
 namespace fem {
-void assemble_system(::fem::Problem problem);
+void assemble_system(::fem::Problem &problem);
 }
 } // namespace cuda

@@ -1,7 +1,6 @@
 #include "cuda_fem.cuh"
 #include "defines.hpp"
 #include "fem.hpp"
-#include <iostream>
 
 // Will be called one thread per element
 __global__ void
@@ -13,9 +12,9 @@ assemble_system_kernel(unsigned int number_of_elements,
                        double *_xsi, double *_eta, double *_weights) {
 
   if (blockIdx.x * blockDim.x + threadIdx.x < number_of_elements) {
-    unsigned int nodes_id[3], nodes_x[3], nodes_y[3], nodes_sysX[3],
-        nodes_sysY[3];
-    double phi[3], dphidxsi[3], dphideta[3], dphidx[3], dphidy[3];
+    unsigned int nodes_id[3], nodes_sysX[3], nodes_sysY[3];
+    double phi[3], dphidxsi[3], dphideta[3], dphidx[3], dphidy[3], nodes_x[3],
+        nodes_y[3];
 
     for (int i = 0; i < 3; i++) {
       nodes_id[i] =
@@ -92,7 +91,7 @@ assemble_system_kernel(unsigned int number_of_elements,
   }
 }
 
-void cuda::fem::assemble_system(::fem::Problem problem) {
+void cuda::fem::assemble_system(::fem::Problem &problem) {
   unsigned int number_of_elements =
       problem.geometry.full_mesh.elements_lists.size();
   unsigned int blocks_number = number_of_elements / THREADS_PER_BLOCK;
@@ -109,6 +108,10 @@ void cuda::fem::assemble_system(::fem::Problem problem) {
              sizeof(::fem::Element<::fem::FEM_TRIANGLE>) * number_of_elements);
   cudaMemcpy(_xsi, problem.geometry.full_mesh.xsi, 3 * sizeof(double),
              cudaMemcpyHostToDevice);
+  cudaMemcpy(_eta, problem.geometry.full_mesh.eta, 3 * sizeof(double),
+             cudaMemcpyHostToDevice);
+  cudaMemcpy(_weights, problem.geometry.full_mesh.weights, 3 * sizeof(double),
+             cudaMemcpyHostToDevice);
   cudaMemcpy(nodes_list, problem.geometry.nodes_list.data(),
              sizeof(::fem::Node) * problem.geometry.number_of_nodes,
              cudaMemcpyHostToDevice);
@@ -120,6 +123,7 @@ void cuda::fem::assemble_system(::fem::Problem problem) {
       problem.system.column.data(), problem.system.data.data(),
       problem.system.B.data(), nodes_list, elements_list, problem.A, problem.B,
       problem.C, problem.rho, problem.g, _xsi, _eta, _weights);
+  cudaDeviceSynchronize();
   cudaFree(_xsi);
   cudaFree(_eta);
   cudaFree(_weights);

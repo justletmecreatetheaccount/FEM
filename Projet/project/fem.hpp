@@ -107,6 +107,8 @@ struct Problem {
 
   Problem(const char *input_file, double _E, double _nu, double _rho,
           double _g);
+  static void femSolutionWrite(int nNodes, int nfields, double *data,
+                               const char *filename);
 };
 
 /* TODO

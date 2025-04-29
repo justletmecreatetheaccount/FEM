@@ -146,6 +146,9 @@ void parse_elements<fem::FEM_TRIANGLE>(
     }
     mutexes_list[nodes[0]].unlock();
     // second node
+    already_linked_0 = false;
+    already_linked_1 = false;
+    already_linked_2 = false;
     mutexes_list[nodes[1]].lock();
     for (size_t j = 0; j < connections_list[nodes[1]].size(); j++) {
       if (connections_list[nodes[1]][j] == nodes[0]) {
@@ -163,6 +166,9 @@ void parse_elements<fem::FEM_TRIANGLE>(
     }
     mutexes_list[nodes[1]].unlock();
     // third node
+    already_linked_0 = false;
+    already_linked_1 = false;
+    already_linked_2 = false;
     mutexes_list[nodes[2]].lock();
     for (size_t j = 0; j < connections_list[nodes[2]].size(); j++) {
       if (connections_list[nodes[2]][j] == nodes[1]) {
@@ -199,31 +205,33 @@ void init_system(fem::System &system,
   system.B.resize(number_of_nodes * 2);
   system.size = 2 * number_of_nodes;
 
-  for (size_t i = 1; i < number_of_nodes * 2; i += 2) {
-    unsigned int node_number = (i - 1) / 2;
+  system.row_ptr[0] = 0;
+  for (size_t i = 0; i < number_of_nodes * 2; i += 2) {
+    unsigned int node_number = i / 2;
     system.row_ptr[i + 1] +=
         system.row_ptr[i] + connections_list[node_number].size() * 2 + 2;
     system.row_ptr[i + 2] +=
         system.row_ptr[i + 1] + connections_list[node_number].size() * 2 + 2;
+
     // first row
     // the node itself
-    system.column[system.row_ptr[i]] = i * 2;
-    system.column[system.row_ptr[i] + 1] = i * 2 + 1;
+    system.column[system.row_ptr[i]] = i;
+    system.column[system.row_ptr[i] + 1] = i + 1;
 
     for (size_t j = 0; j < connections_list[node_number].size(); j++) {
-      system.column[system.row_ptr[i] + j + 2] =
+      system.column[system.row_ptr[i] + 2 * j + 2] =
           connections_list[node_number][j] * 2;
-      system.column[system.row_ptr[i] + j + 3] =
+      system.column[system.row_ptr[i] + 2 * j + 3] =
           connections_list[node_number][j] * 2 + 1;
     }
     // second row
     // the node itself
-    system.column[system.row_ptr[i + 1]] = i * 2 + 1;
-    system.column[system.row_ptr[i + 1] + 1] = i * 2 + 1;
+    system.column[system.row_ptr[i + 1]] = i;
+    system.column[system.row_ptr[i + 1] + 1] = i + 1;
     for (size_t j = 0; j < connections_list[node_number].size(); j++) {
-      system.column[system.row_ptr[i + 1] + j + 1] =
+      system.column[system.row_ptr[i + 1] + 2 * j + 2] =
           connections_list[node_number][j] * 2;
-      system.column[system.row_ptr[i + 1] + j + 2] =
+      system.column[system.row_ptr[i + 1] + 2 * j + 3] =
           connections_list[node_number][j] * 2 + 1;
     }
   }

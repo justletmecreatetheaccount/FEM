@@ -20,6 +20,8 @@ __global__ void add_vv(unsigned int n, T *v1, T *v2, T c1, T c2) {
     v2[idx] = c1 * v1[idx] + c2 * v2[idx];
 }
 
+// Kernel to mult two vectors (ettonamment plus rapide que juste le faire sur un
+// thread)
 template <typename T>
 __global__ void multiply_vv(unsigned int n, T *v1, T *v2, T *vout) {
   unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -78,6 +80,10 @@ double vectorNorm(unsigned int size, double *A) {
   return norm;
 }
 
+/* Definition d'un allocateur pour avoir des vecteur avec de la memoire managee
+ * cuda
+ *
+ */
 namespace cuda {
 template <class T> T *allocator<T>::allocate(std::size_t n) {
   T *x;
@@ -94,6 +100,11 @@ template class allocator<int>;
 template class allocator<unsigned int>;
 template class allocator<double>;
 
+/* Additionne deux vecteurs
+ * ---
+ * v1, v2 > les vecteurs, le resultat de l'operation est mis dans v2
+ * c1, c2 > constantes pour multiplier les vecteurs si envie
+ */
 template <typename T>
 void add_vectors(unsigned int n, T *v1, T *v2, T c1, T c2) {
   int number_of_blocks = n / THREADS_PER_BLOCK + 1;
@@ -124,6 +135,16 @@ template int multiply_vectors<int>(unsigned int n, int *v1, int *v2);
 template double multiply_vectors<double>(unsigned int n, double *v1,
                                          double *v2);
 
+/* Multiplies deux vecteurs (je conseille d'aller voir le lien pour comprendre
+ * le code)
+ * ---
+ * size : la taille de la matrice et du vecteur
+ * columns, row_pointers, data : la matrice sous format csr
+ * vector : le vecteur avec lequel on multiplies
+ * result : le vecteur dans lequel on met le resultat
+ * alpha : constante pour multiplier le resultat
+ * beta : constante pour preserver la valeur precedente dans result
+ */
 template <typename T>
 void multiply_matrix_vector(unsigned int size, unsigned int *columns,
                             unsigned int *row_pointers, T *data, T *vector,
@@ -173,6 +194,7 @@ template void multiply_matrix_vector<double>(
     unsigned int size, unsigned int *columns, unsigned int *row_pointers,
     double *data, double *vector, double *result, double alpha, double beta);
 
+// la solution est enregistree dans B
 void conjugate_gradient(unsigned int size, unsigned int *columns,
                         unsigned int *row_pointers, double *data, double *B) {
   double *Residual, *search_direction, *A_search_direction;
@@ -234,6 +256,7 @@ void conjugate_gradient(unsigned int size, unsigned int *columns,
   cudaFree(A_search_direction);
 }
 
+// fonction pour tester ce qu'il y a au dessus
 void test() {
   bool good = true;
   int *x, *y, *z;

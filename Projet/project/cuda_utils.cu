@@ -202,22 +202,22 @@ void conjugate_gradient(unsigned int size, unsigned int *columns,
   cudaMallocManaged(&search_direction, size * sizeof(double));
   cudaMallocManaged(&A_search_direction, size * sizeof(double));
 
-  // Initialize residual vector
-  multiply_matrix_vector<double>(size, columns, row_pointers, data, B, Residual,
-                                 1.0, 0.0);
-  cudaDeviceSynchronize();
-  add_vectors<double>(size, B, Residual, 1.0, -1.0);
-  cudaDeviceSynchronize();
-  // Skip all if B is right guess
+  // // Initialize residual vector
+  memcpy(Residual, B, sizeof(double) * size);
+
+  // Skip all if 0 is right guess
   double old_res_norm = vectorNorm(size, Residual);
   if (old_res_norm < TOL) {
     cudaFree(Residual);
     cudaFree(search_direction);
     cudaFree(A_search_direction);
+    return;
   }
-
+  // Init solution vector
+  memset(B, 0, sizeof(double) * size);
   // Initialize search direction vector
   memcpy(search_direction, Residual, sizeof(double) * size);
+
   // Iterate until convergence
   for (int i = 0; i < 5; i++) {
     if (i == 4) {
@@ -296,6 +296,17 @@ void test() {
     good = false;
     std::cout << "r1 : " << r1 << " " << "r2 : " << r2 << "\n";
   }
+  r2 = 0;
+  r1 = multiply_vectors(1000, x, y);
+  for (int i = 0; i < 1000; i++) {
+    r2 += x[i] * y[i];
+  }
+
+  cudaDeviceSynchronize();
+  if (r1 != r2) {
+    good = false;
+    std::cout << "r1 : " << r1 << " " << "r2 : " << r2 << "\n";
+  }
 
   if (good) {
     std::cout << "YAY\n";
@@ -341,7 +352,13 @@ void test() {
   memcpy(row_ptr, _row_ptr, sizeof(unsigned int) * 7);
   memcpy(col, _col, sizeof(unsigned int) * 17);
 
-  multiply_matrix_vector<double>(6, col, row_ptr, data, B, result, 1, 1);
+  multiply_matrix_vector<double>(6, col, row_ptr, data, B, result, 1, 0);
+  cudaDeviceSynchronize();
+
+  for (int i = 0; i < 6; i++) {
+    std::cout << "result : " << result[i] << "\n";
+  }
+  multiply_matrix_vector<double>(6, col, row_ptr, data, B, result, 1, 0);
   cudaDeviceSynchronize();
 
   for (int i = 0; i < 6; i++) {
